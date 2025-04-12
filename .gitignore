@@ -1,0 +1,23 @@
+# Python venv
+venv/
+
+# Logfiles
+*.log
+
+# Cache / Python
+__pycache__/
+*.pyc
+
+# Modelle / Binärdateien
+*.bin
+
+# Lokale Konfiguration
+config.yaml
+
+# Systemdateien
+.DS_Store
+
+# Backup-Dateien
+*.bak
+*.swp
+*.tmp
