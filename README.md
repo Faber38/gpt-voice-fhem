@@ -1,50 +1,80 @@
-# gpt-voice-fhem
 
-Lokale Sprachsteuerung für FHEM über GPT-Modelle.
+# gpt-voice-fhem
 
 ## Projektbeschreibung
 
-Dieses Projekt ermöglicht die Sprachsteuerung von FHEM über lokal laufende GPT-Modelle.  
-Es werden keine Cloud-Dienste verwendet — alles bleibt lokal auf eigener Hardware.
+Dieses Projekt ermöglicht eine lokale Sprachsteuerung von FHEM über GPT-Modelle.
 
-Getrennte Architektur:
+Sprachbefehle werden per HTTP an den Sprachserver gesendet und in FHEM über DOIF-Logik verarbeitet.
 
-- GPT Sprachserver (z.B. auf eigener VM)
-- FHEM Server (z.B. separate VM)
-- Kommunikation über HTTP API
+Die Sprachlogik in FHEM wird über DOIF und Dummy-Devices in der Datei `fhem/gpt.cfg` umgesetzt.
 
----
+Beispiel:
+- Sprachbefehl:  
+  `"Schalte das Licht in der Küche an"`
+- Ergebnis:  
+  DOIF in FHEM schaltet das Küchenlicht über Homematic Aktor.
 
 ## Projektstruktur
 
-├── src/ → Python Quellcode für Sprachlogik / API ├── fhem/ → FHEM Konfiguration (z.B. DOIF, Dummy Devices) ├── docs/ → Dokumentation, Sprachbefehle usw. ├── requirements.txt → Python Abhängigkeiten └── config.yaml → Konfigurationsdatei für Server
+```
+├── src/                → Python Quellcode für Sprachlogik / API (Flask)
+├── fhem/               → FHEM Konfiguration (z.B. DOIF, Dummy Devices in gpt.cfg)
+├── docs/               → Dokumentation, Sprachbefehle, Beispiele
+├── requirements.txt    → Python Abhängigkeiten
+├── config.yaml         → Konfigurationsdatei für GPT Server (IP, API-Key, Port)
+└── README.md           → Projektbeschreibung
+```
 
+## Voraussetzungen
 
----
+- FHEM installiert (getestet auf Debian)
+- Python 3.x Umgebung
+- Lokaler Sprachserver (getestet mit GPT4All / MPT / ollama)
+- Modelle: Sprachmodelle lokal (kein Cloud-Zugriff nötig)
 
-## Ziel
+## Installation (Kurzform)
 
-Einfacher und lokal betriebener Sprachassistent zur Steuerung von Geräten im Smart Home (FHEM).
+Auf dem GPT-Sprachserver:
 
----
+```bash
+git clone git@github.com:Faber38/gpt-voice-fhem.git
+cd gpt-voice
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python src/server.py
+```
 
-## Status
+## Beispiel Sprachbefehl per curl
 
-- Sprachsteuerung für Licht funktioniert
-- Ausbaubar auf weitere Geräte und Räume
+```bash
+curl -X POST http://<Sprachserver-IP>:5000/api/voicecmd -H "Content-Type: application/json" -d '{"text": "Schalte das Licht in der Küche an"}'
+```
 
----
+## FHEM Integration
+
+Die Datei `fhem/gpt.cfg` enthält alle GPT-Logiken:
+
+- Dummy `GptVoiceCommand`
+- DOIF `di_gpt_Kuechenlicht`
+- Weitere Geräte werden hier ergänzt
 
 ## ToDo
 
-- Weitere Sprachbefehle
-- Variablenerkennung verbessern
-- Doku erweitern
-- Automatisierte Tests
+- Weitere Sprachbefehle / Geräte ergänzen
+- Beispiel-Skripte zur Einrichtung Sprachserver
+- Dokumentation weiter ausbauen
 
 ---
 
-## Lizenz
+## Lizenz / Nutzung
 
-Private Nutzung — Open Source — Keine Gewährleistung
+Dieses Projekt dient als private Sprachsteuerung für FHEM SmartHome Systeme.  
+Verwendung und Anpassung auf eigene Verantwortung.  
 
+(c) 2025 Faber38  
+
+
+Stand: April 2025  
+Autor: github.com/Faber38
