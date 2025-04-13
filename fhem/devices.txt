@@ -1,0 +1,10 @@
+Raum;Gerät;FHEM_Device_Name;Typ;Synonyme
+Küche;Licht;HM_62CD38;Schalten;Küchenlampe,Küchenlicht,Licht Küche,Küchenlicht an
+Wohnzimmer;Licht;wz_licht_2;Schalten;Wohnzimmerlampe,Decke an
+Esszimmer;Licht;wz_licht_1;Schalten;Esszimmerlicht an
+Diele;Licht;HM_6648C9;Schalten;Dielenlicht an
+Terasse;Licht;HM_6648FC;Schalten;Terrassenlicht,Aussenlicht an
+Küche;Rollade;Roll_Kueche;Rolladen;Küchenrollade,Rollade Küche
+Wohnzimmer;Rollade;Roll_Wohnz;Rolladen;Wohnzimmer Rollade,Rollade Wohnzimmer
+Terasse;Rollade;HM_731E63;Rolladen;Terrassentür,Rollade Terrassentür,Terrassentür Rollade
+Haus;Alarmanlage;TasteA;Schalten;Alarmanlage
