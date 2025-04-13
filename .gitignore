@@ -21,3 +21,4 @@ config.yaml
 *.bak
 *.swp
 *.tmp
+fhem/devices_broken.txt
