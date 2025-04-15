@@ -7,4 +7,6 @@ Terasse;Licht;HM_6648FC;Schalten;Terrassenlicht,Aussenlicht an
 Küche;Rollade;Roll_Kueche;Rolladen;Küchenrollade,Rollade Küche
 Wohnzimmer;Rollade;Roll_Wohnz;Rolladen;Wohnzimmer Rollade,Rollade Wohnzimmer
 Terasse;Rollade;HM_731E63;Rolladen;Terrassentür,Rollade Terrassentür,Terrassentür Rollade
+Diele;Rollade;Roll_Diele;Rolladen;Diele,Rollade Diele,Dielen Rollade
+Bad;Rollade;Roll_Bad;Rolladen;Bad,Rollade Bad,Bad Rollade
 Haus;Alarmanlage;TasteA;Schalten;Alarmanlage
