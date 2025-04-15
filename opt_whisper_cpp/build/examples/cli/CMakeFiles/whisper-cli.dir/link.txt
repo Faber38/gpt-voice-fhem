@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG "CMakeFiles/whisper-cli.dir/cli.cpp.o" -o ../../bin/whisper-cli  -Wl,-rpath,/opt/whisper.cpp/build/src:/opt/whisper.cpp/build/ggml/src: ../libcommon.a ../../src/libwhisper.so.1.7.5 ../../ggml/src/libggml.so ../../ggml/src/libggml-cpu.so ../../ggml/src/libggml-base.so -ldl 
