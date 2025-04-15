@@ -1,80 +1,103 @@
-
 # gpt-voice-fhem
 
 ## Projektbeschreibung
 
-Dieses Projekt ermöglicht eine lokale Sprachsteuerung von FHEM über GPT-Modelle.
+Lokale Sprachsteuerung von FHEM über GPT-Modelle und Whisper-Spracherkennung auf einem dedizierten Server (Debian VM unter Proxmox).
 
-Sprachbefehle werden per HTTP an den Sprachserver gesendet und in FHEM über DOIF-Logik verarbeitet.
-
-Die Sprachlogik in FHEM wird über DOIF und Dummy-Devices in der Datei `fhem/gpt.cfg` umgesetzt.
-
-Beispiel:
-- Sprachbefehl:  
-  `"Schalte das Licht in der Küche an"`
-- Ergebnis:  
-  DOIF in FHEM schaltet das Küchenlicht über Homematic Aktor.
-
-## Projektstruktur
-
-```
-├── src/                → Python Quellcode für Sprachlogik / API (Flask)
-├── fhem/               → FHEM Konfiguration (z.B. DOIF, Dummy Devices in gpt.cfg)
-├── docs/               → Dokumentation, Sprachbefehle, Beispiele
-├── requirements.txt    → Python Abhängigkeiten
-├── config.yaml         → Konfigurationsdatei für GPT Server (IP, API-Key, Port)
-└── README.md           → Projektbeschreibung
-```
-
-## Voraussetzungen
-
-- FHEM installiert (getestet auf Debian)
-- Python 3.x Umgebung
-- Lokaler Sprachserver (getestet mit GPT4All / MPT / ollama)
-- Modelle: Sprachmodelle lokal (kein Cloud-Zugriff nötig)
-
-## Installation (Kurzform)
-
-Auf dem GPT-Sprachserver:
-
-```bash
-git clone git@github.com:Faber38/gpt-voice-fhem.git
-cd gpt-voice
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python src/server.py
-```
-
-## Beispiel Sprachbefehl per curl
-
-```bash
-curl -X POST http://<Sprachserver-IP>:5000/api/voicecmd -H "Content-Type: application/json" -d '{"text": "Schalte das Licht in der Küche an"}'
-```
-
-## FHEM Integration
-
-Die Datei `fhem/gpt.cfg` enthält alle GPT-Logiken:
-
-- Dummy `GptVoiceCommand`
-- DOIF `di_gpt_Kuechenlicht`
-- Weitere Geräte werden hier ergänzt
-
-## ToDo
-
-- Weitere Sprachbefehle / Geräte ergänzen
-- Beispiel-Skripte zur Einrichtung Sprachserver
-- Dokumentation weiter ausbauen
+- Sprachaufnahme per Wakeword ("Niko") → Whisper.cpp Speech-to-Text
+- Verarbeitung via GPT (Ollama)
+- Steuerung von SmartHome (FHEM) über HTTP API
+- Vollständig offline, ohne Cloud-Zugriff
 
 ---
 
-## Lizenz / Nutzung
+## Projektstruktur
 
-Dieses Projekt dient als private Sprachsteuerung für FHEM SmartHome Systeme.  
-Verwendung und Anpassung auf eigene Verantwortung.  
-
-(c) 2025 Faber38  
+├── src/ → Python Quellcode API (Flask GPT Voice API) ├── fhem/ → FHEM Konfiguration / Logik (DOIF, Dummy Devices) ├── rudi-voice/ → Wakeword Erkennung & Aufnahme (Vosk / sounddevice) │ ├── models/ → Vosk Sprachmodelle (Deutsch) │ ├── sounds/ → Beep Sounds & Feedback WAVs │ └── logs/ → Logfiles Wakeword & Spracherkennung ├── opt_whisper_cpp/ → Whisper.cpp Backup aus /opt/whisper.cpp ├── docs/ → Projekt-Dokumentation & Planung ├── requirements.txt → Python Abhängigkeiten ├── config.yaml → GPT API Server Konfiguration └── README.md → Dieses Dokument
 
 
-Stand: April 2025  
-Autor: github.com/Faber38
+---
+
+## Technische Details
+
+### VM Konfiguration (Proxmox)
+
+| Ressource     | Wert                          |
+|---------------|--------------------------------|
+| CPU           | 1 Socket / 12 Kerne (host)    |
+| RAM           | 16 GB                        |
+| Storage       | SSD / VirtIO SCSI            |
+| Netzwerk      | VirtIO / Bridge vmbr0        |
+| IP-Adresse    | 192.168.38.201               |
+
+---
+
+### Dienste / Services
+
+| Dienst         | Beschreibung                            | Start über systemd               |
+|----------------|-----------------------------------------|---------------------------------|
+| whisper.service | Whisper.cpp Speech-To-Text Server      | TCP Port 5001                   |
+| gptvoice.service| GPT Voice API / Flask Server           | TCP Port 5000                   |
+| rudi-voice.service| Wakeword Listener "Niko" + Aufnahme  | Lokale Spracherkennung / Trigger|
+
+---
+
+## Installation
+
+```bash
+git clone git@github.com:Faber38/gpt-voice-fhem.git
+cd gpt-voice-fhem
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+Sprachbefehl senden (Beispiel)
+
+curl -X POST http://192.168.38.201:5000/api/voicecmd \
+-H "Content-Type: application/json" \
+-d '{"text": "Schalte das Licht in der Küche an"}'
+
+Nutzung Wakeword / Sprachaufnahme
+
+    Wakeword "Niko" → bereit.wav (Signalton)
+
+    Aufnahme 10 Sekunden → Whisper
+
+    Ergebnis → GPT Verarbeitung
+
+    Antwort an FHEM
+
+    Beep-Töne je nach Status:
+
+        okay.wav → erfolgreich
+
+        error.wav → Fehler / Gerät nicht gefunden
+
+ToDo / Geplant
+
+    Erweiterung Sprachbefehle
+
+    Logging optimieren
+
+    Deployment Anleitung
+
+    GPU Beschleunigung vorbereiten (RTX 3060 passthrough Proxmox)
+
+    TTS ersetzen durch WAV Feedback
+
+Hinweise
+
+    Whisper.cpp läuft in /opt/whisper.cpp
+
+    GPT Modelle liegen lokal in /opt/ollama
+
+    Alle Services laufen automatisch nach Boot
+
+Lizenz / Nutzung
+
+Dieses Projekt dient ausschließlich privaten Zwecken im FHEM SmartHome Umfeld.
+
+Verwendung und Anpassung auf eigene Gefahr.
+
+(c) 2025 github.com/Faber38
+Stand: April 2025
