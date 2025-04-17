@@ -28,7 +28,7 @@ Lokale Sprachsteuerung von FHEM über GPT-Modelle und Whisper-Spracherkennung au
 | RAM           | 16 GB                        |
 | Storage       | SSD / VirtIO SCSI            |
 | Netzwerk      | VirtIO / Bridge vmbr0        |
-| IP-Adresse    | 192.168.38.201               |
+| IP-Adresse    | 192.168.xx.xxx              |
 
 ---
 
@@ -53,7 +53,7 @@ pip install -r requirements.txt
 
 Sprachbefehl senden (Beispiel)
 
-curl -X POST http://192.168.38.201:5000/api/voicecmd \
+curl -X POST http://192.168.xx.xxx:5000/api/voicecmd \
 -H "Content-Type: application/json" \
 -d '{"text": "Schalte das Licht in der Küche an"}'
 
