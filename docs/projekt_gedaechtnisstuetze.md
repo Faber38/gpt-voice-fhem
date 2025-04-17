@@ -7,15 +7,15 @@ Lokale Sprachsteuerung auf einem Proxmox Server:
 
 ## Server / VM Setup
 - Debian 12 Minimal
-- Proxmox VM (IP: 192.168.38.201)
-- Benutzer: gptuser
+- Proxmox VM (IP: 192.168.xx.xx)
+- Benutzer: xxxxx
 
 ## Komponenten
 | Komponente     | Funktion                 | Pfad                          |
 |----------------|--------------------------|--------------------------------|
 | whisper.cpp    | Lokale Spracherkennung   | /opt/whisper.cpp/              |
-| rudi-voice     | Wakeword + Recording     | /home/gptuser/rudi-voice/     |
-| gpt-voice      | API / Verarbeitung       | /home/gptuser/gpt-voice-fhem/ |
+| rudi-voice     | Wakeword + Recording     | /home/xxx/rudi-voice/     |
+| gpt-voice      | API / Verarbeitung       | /home/xxx/gpt-voice-fhem/ |
 
 ## Dienste
 ```bash
@@ -26,7 +26,7 @@ systemctl start gptvoice.service
 
 ## Git / Backup
 ```bash
-alias gptgit='/home/gptuser/git_backup_restore.sh'
+alias gptgit='/home/xxx/git_backup_restore.sh'
 ```
 Automatisiertes Backup und Restore nach GitHub.
 
