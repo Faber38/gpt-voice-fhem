@@ -2,12 +2,16 @@
 import sys
 import requests
 import os
+import configparser
 
 # 📄 Konfiguration
 DEVICE_FILE = "/opt/script/device.txt"
-FHEM_URL = "http://192.168.38.80:8083"
-FHEM_USER = "holger"
-FHEM_PASS = "co1je2sd"
+config = configparser.ConfigParser()
+config.read("/opt/script/fhem_auth.conf")
+
+FHEM_URL = config.get("FHEM", "url")
+FHEM_USER = config.get("FHEM", "user")
+FHEM_PASS = config.get("FHEM", "pass")
 CONFIRM_FILE = "/tmp/fhem_confirmed"
 
 # ✅ Eingabe prüfen
