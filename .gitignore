@@ -1,0 +1,9 @@
+venv/
+*.wav
+*.zip
+*.gguf
+*.pyc
+__pycache__/
+*.log
+*.tmp
+*.swp

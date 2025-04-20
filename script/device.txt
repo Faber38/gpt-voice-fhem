@@ -1,0 +1,28 @@
+Küche Licht an|ein|einschalten
+Küche Licht aus|ausschalten
+Wohnzimmer Licht an|ein|einschalten
+Wohnzimmer Licht aus|ausschalten
+Esszimmer Licht an|ein|einschalten
+Esszimmer Licht aus|ausschalten
+Diele Licht an|ein|einschalten
+Diele Licht aus|ausschalten
+Terasse Licht an|ein|einschalten
+Terasse Licht aus|ausschalten
+
+Küche Rollade|Rollo rauf|hoch|auf
+Küche Rollade|Rollo runter|zu
+Wohnzimmer Rollade|Rollo rauf|hoch|auf
+Wohnzimmer Rollade|Rollo runter
+Diele Rollade|Rollo rauf|hoch|auf
+Diele Rollade|Rollo runter
+Terassentür Rollade|Rollo rauf|hoch|auf
+Terassentür Rollade|Rollo runter
+Bad Rollade|Rollo rauf|hoch|auf
+Bad Rollade|Rollo runter
+Schlafzimmer Rollade|Rollo rauf|hoch|auf
+Schlafzimmer Rollade|Rollo runter
+Markise raus|rausfahren|ausfahren
+Markise rein|reinfahren|einfahren
+
+Haus Alarmanlage ein
+Haus Alarmanlage aus
