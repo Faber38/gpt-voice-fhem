@@ -1,4 +1,4 @@
-Küche Licht an|ein|einschalten
+KÜche Licht an|ein|einschalten
 Küche Licht aus|ausschalten
 Wohnzimmer Licht an|ein|einschalten
 Wohnzimmer Licht aus|ausschalten
@@ -8,21 +8,19 @@ Diele Licht an|ein|einschalten
 Diele Licht aus|ausschalten
 Terasse Licht an|ein|einschalten
 Terasse Licht aus|ausschalten
-
-Küche Rollade|Rollo rauf|hoch|auf
-Küche Rollade|Rollo runter|zu
-Wohnzimmer Rollade|Rollo rauf|hoch|auf
-Wohnzimmer Rollade|Rollo runter
-Diele Rollade|Rollo rauf|hoch|auf
-Diele Rollade|Rollo runter
-Terassentür Rollade|Rollo rauf|hoch|auf
-Terassentür Rollade|Rollo runter
-Bad Rollade|Rollo rauf|hoch|auf
-Bad Rollade|Rollo runter
-Schlafzimmer Rollade|Rollo rauf|hoch|auf
-Schlafzimmer Rollade|Rollo runter
+Küche Rollade|Rolladen|Rollo hoch|rauf
+Küche Rolladen runter|zu
+Wohnzimmer Rollade|Rollo|Rolladen rauf|hoch|auf
+Wohnzimmer Rollade|Rollo|Rolladen runter|zu
+Diele Rollade|Rollo|Rolladen rauf|hoch|auf
+Diele Rollade|Rollo|Rolladen runter
+Terassentür Rollade|Rollo|Rolladen rauf|hoch|auf
+Terassentür Rollade|Rollo|Rolladen runter
+Bad Rollade|Rollo|Rolladen rauf|hoch|auf
+Bad Rollade|Rollo|Rolladen runter
+Schlafzimmer Rollade|Rollo|Rolladen rauf|hoch|auf
+Schlafzimmer Rollade|Rollo|Rolladen runter
 Markise raus|rausfahren|ausfahren
 Markise rein|reinfahren|einfahren
-
 Haus Alarmanlage ein
 Haus Alarmanlage aus

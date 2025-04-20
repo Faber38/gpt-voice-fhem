@@ -3,6 +3,7 @@ import sys
 import requests
 import os
 import configparser
+from filter import clean_text  # ✅ Filterfunktionen auslagern
 
 # 📄 Konfiguration
 DEVICE_FILE = "/opt/script/device.txt"
@@ -19,14 +20,10 @@ if len(sys.argv) < 2:
     print("❌ Bitte gib einen Sprachbefehl ein.")
     sys.exit(1)
 
-# 🔠 Text säubern (alles klein, nur relevante Wörter)
+# 🔠 Text säubern, normalisieren und filtern
 user_input = sys.argv[1].lower()
 print(f"📥 Eingabe: {user_input}")
-
-# 🔍 Füllwörter entfernen
-fuellwoerter = ["bitte", "mach", "mache", "kannst", "du", "das", "den", "die", "in", "im", "der"]
-filtered = " ".join([w for w in user_input.split() if w not in fuellwoerter])
-print(f"🧹 Gefiltert: {filtered}")
+filtered = clean_text(user_input)  # ← nutzt jetzt filter.py
 
 # 📄 Datei laden
 try:
@@ -44,7 +41,6 @@ for line in lines:
     if len(parts) < 2:
         continue
 
-    # 🔎 Komponenten erkennen
     if len(parts) == 3:
         raum, geraet, aktionen = parts
     else:
@@ -64,7 +60,10 @@ for line in lines:
     print(f"   → Ergebnis: raum_ok={raum_ok}, geraet_ok={geraet_ok}, aktion_ok={aktion_ok}")
 
     if raum_ok and geraet_ok and aktion_ok:
-        befehl = " ".join(filter(None, [raum.title(), geraet.title(), aktionen.split("|")[0].lower()]))
+        standard_raum = raum.title() if raum else ""
+        standard_geraet = geraet_opts[0].title()
+        standard_aktion = aktion_opts[0].lower()
+        befehl = " ".join(filter(None, [standard_raum, standard_geraet, standard_aktion]))
         matches.append(befehl)
 
 # 🧠 Ergebnis senden
@@ -79,7 +78,6 @@ if len(matches) == 1:
             timeout=3
         )
         print("✅ an FHEM gesendet → Dummy: GptVoiceCommand")
-        # ✅ Bestätigung schreiben
         with open(CONFIRM_FILE, "w") as f:
             f.write("ok")
     except Exception as e:

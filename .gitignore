@@ -9,3 +9,4 @@ __pycache__/
 *.swp
 pytorch/
 /opt/script/fhem_auth.conf
+script/fhem_auth.conf
