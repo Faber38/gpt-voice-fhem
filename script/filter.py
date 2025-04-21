@@ -29,7 +29,7 @@ def remove_fuellwoerter(text):
 
 
 def auto_ergaenze_rollade(text):
-        bewegung_woerter = ["runter", "unter", "rauf", "hoch", "auf"]
+        bewegung_woerter = ["raus", "rein", "runter", "unter", "rauf", "hoch", "auf"]
         rollo_begriffe = ["rollade", "rollo", "rollladen", "rolladen"]
         if not any(w in text for w in rollo_begriffe):
             for wort in bewegung_woerter:
