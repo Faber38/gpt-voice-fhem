@@ -54,15 +54,7 @@ for line in lines:
     filtered_words = filtered.split()
     raum_ok = any(opt in filtered_words for opt in raum_opts) if raum_opts else True
     geraet_ok = any(opt in filtered_words for opt in geraet_opts)
-
-    # 🔢 Sonderfall: Aktion ist eine Zahl UND "%" ist in der Aktion erlaubt
-    zahl = next((w for w in filtered_words if w.isdigit() and 0 <= int(w) <= 100), None)
-    if zahl and "%" in aktion_opts:
-        aktion_ok = True
-        standard_aktion = zahl
-    else:
-        aktion_ok = any(opt in filtered_words for opt in aktion_opts)
-        standard_aktion = next((opt for opt in aktion_opts if opt in filtered_words), None)
+    aktion_ok = any(opt in filtered_words for opt in aktion_opts)
 
     print(f"🔎 Prüfe: Raum={raum_opts}, Gerät={geraet_opts}, Aktion={aktion_opts}")
     print(f"   → Ergebnis: raum_ok={raum_ok}, geraet_ok={geraet_ok}, aktion_ok={aktion_ok}")
@@ -70,6 +62,7 @@ for line in lines:
     if raum_ok and geraet_ok and aktion_ok:
         standard_raum = raum.title() if raum else ""
         standard_geraet = geraet_opts[0].title()
+        standard_aktion = aktion_opts[0].lower()
         befehl = " ".join(filter(None, [standard_raum, standard_geraet, standard_aktion]))
         matches.append(befehl)
 

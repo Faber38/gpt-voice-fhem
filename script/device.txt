@@ -8,19 +8,24 @@ Diele Licht an|ein|einschalten
 Diele Licht aus|ausschalten
 Terasse Licht an|ein|einschalten
 Terasse Licht aus|ausschalten
-Küche Rollade|Rolladen|Rollo hoch|rauf
-Küche Rolladen runter|zu
-Wohnzimmer Rollade|Rollo|Rolladen rauf|hoch|auf
-Wohnzimmer Rollade|Rollo|Rolladen runter|zu
-Diele Rollade|Rollo|Rolladen rauf|hoch|auf
-Diele Rollade|Rollo|Rolladen runter
-Terassentür Rollade|Rollo|Rolladen rauf|hoch|auf
-Terassentür Rollade|Rollo|Rolladen runter
-Bad Rollade|Rollo|Rolladen rauf|hoch|auf
-Bad Rollade|Rollo|Rolladen runter
-Schlafzimmer Rollade|Rollo|Rolladen rauf|hoch|auf
-Schlafzimmer Rollade|Rollo|Rolladen runter
-Markise raus|rausfahren|ausfahren
-Markise rein|reinfahren|einfahren
+Küche Rollade|Rolladen|Rollo hoch|rauf|%
+Küche Rolladen runter|zu|%
+Wohnzimmer Rollade|Rollo|Rolladen rauf|hoch|auf|%
+Wohnzimmer Rollade|Rollo|Rolladen runter|zu|%
+Diele Rollade|Rollo|Rolladen rauf|hoch|auf|%
+Diele Rollade|Rollo|Rolladen runter|%
+Terassentür Rollade|Rollo|Rolladen rauf|hoch|auf|%
+Terassentür Rollade|Rollo|Rolladen runter|%
+Bad Rollade|Rollo|Rolladen rauf|hoch|auf|%
+Bad Rollade|Rollo|Rolladen runter|%
+Schlafzimmer Rollade|Rollo|Rolladen rauf|hoch|auf|%
+Schlafzimmer Rollade|Rollo|Rolladen runter|%
+Markise raus|rausfahren|ausfahren|%
+Markise rein|reinfahren|einfahren|%
 Haus Alarmanlage ein
 Haus Alarmanlage aus
+tageslicht an
+tageslicht aus
+urlaubsmodus an|aktivieren|einschalten
+normalmodus an|aktivieren|einschalten
+Temperatur Wohnzimmer
