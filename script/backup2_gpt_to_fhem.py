@@ -3,8 +3,7 @@ import sys
 import requests
 import os
 import configparser
-from filter import clean_text  # Filterfunktion einbinden
-import subprocess
+from filter import clean_text  # ✅ Filterfunktionen auslagern
 
 # 📄 Konfiguration
 DEVICE_FILE = "/opt/script/device.txt"
@@ -34,32 +33,6 @@ except Exception as e:
     print(f"❌ Fehler beim Lesen von device.txt: {e}")
     sys.exit(1)
 
-if "hilfe" in filtered:
-        print("🎧 Befehl erkannt: Hilfe anfordern")
-    
-        if "rollade" in filtered:
-            help_file_path = "/opt/sound/hilfe/rolladen.wav"
-            print("🎧 Hilfe zu Rollade wird abgespielt.")
-        elif "licht" in filtered:
-            help_file_path = "/opt/sound/hilfe/licht.wav"
-            print("🎧 Hilfe zu Licht wird abgespielt.")
-        else:
-            print("❌ Keine spezifische Hilfe gefunden.")
-            sys.exit(0)
-    
-        if os.path.exists(help_file_path):
-            print(f"▶️ Spiele Hilfe-Datei: {help_file_path}")
-            with open("/opt/script/audio_device.conf", "r") as f:
-                alsa_dev = f.read().strip()
-            
-            subprocess.Popen(["aplay", "-D", alsa_dev, help_file_path])
-            
-        else:
-            print(f"❌ Hilfe-Datei nicht gefunden: {help_file_path}")
-        sys.exit(0)
-    
-
-# Falls es kein Hilfe-Befehl war, fortfahren
 print("📄 Erlaubte Kombinationen:")
 matches = []
 for line in lines:
@@ -81,13 +54,23 @@ for line in lines:
     filtered_words = filtered.split()
     raum_ok = any(opt in filtered_words for opt in raum_opts) if raum_opts else True
     geraet_ok = any(opt in filtered_words for opt in geraet_opts)
-    aktion_ok = any(opt in filtered_words for opt in aktion_opts)
+
+    # 🔢 Sonderfall: Aktion ist eine Zahl UND "%" ist in der Aktion erlaubt
+    zahl = next((w for w in filtered_words if w.isdigit() and 0 <= int(w) <= 100), None)
+    if zahl and "%" in aktion_opts:
+        aktion_ok = True
+        standard_aktion = zahl
+    else:
+        aktion_ok = any(opt in filtered_words for opt in aktion_opts)
+        standard_aktion = next((opt for opt in aktion_opts if opt in filtered_words), None)
 
     print(f"🔎 Prüfe: Raum={raum_opts}, Gerät={geraet_opts}, Aktion={aktion_opts}")
     print(f"   → Ergebnis: raum_ok={raum_ok}, geraet_ok={geraet_ok}, aktion_ok={aktion_ok}")
 
     if raum_ok and geraet_ok and aktion_ok:
-        befehl = " ".join(filter(None, [raum.title(), geraet.title(), aktionen.split("|")[0].lower()]))
+        standard_raum = raum.title() if raum else ""
+        standard_geraet = geraet_opts[0].title()
+        befehl = " ".join(filter(None, [standard_raum, standard_geraet, standard_aktion]))
         matches.append(befehl)
 
 # 🧠 Ergebnis senden

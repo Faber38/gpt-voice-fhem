@@ -28,4 +28,7 @@ tageslicht an
 tageslicht aus
 urlaubsmodus an|aktivieren|einschalten
 normalmodus an|aktivieren|einschalten
+rolladenautomatik an|einsschalten
+rolladenautomatik aus|ausschalten
 Temperatur Wohnzimmer
+
