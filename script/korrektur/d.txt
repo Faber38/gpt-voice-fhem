@@ -1,0 +1,3 @@
+# falsch|richtig
+darunter|runter
+darrunter|runter

@@ -1,0 +1,3 @@
+# falsch|richtig
+tageslicht an|tageslicht an
+tageslicht aus|tageslicht aus

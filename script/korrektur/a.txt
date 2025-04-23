@@ -1,0 +1,8 @@
+# erkannt | verbessert !
+apple tv|appletv
+apple tv|appletv
+äpfel tv|appletv
+äpfel tivi|appletv
+äpple tv|appletv
+apple tivi|appletv
+apple tevau|appletv

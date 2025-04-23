@@ -1,68 +1,35 @@
-# /opt/script/filter.py
+import os
+
+# 🔄 Korrekturen aus Dateien laden
+def lade_korrekturen(pfad="/opt/script/korrektur"):
+    corrections = {}
+    for dateiname in sorted(os.listdir(pfad)):
+        if dateiname.endswith(".txt"):
+            dateipfad = os.path.join(pfad, dateiname)
+            with open(dateipfad, "r", encoding="utf-8") as f:
+                for zeile in f:
+                    zeile = zeile.strip()
+                    if not zeile or zeile.startswith("#"):
+                        continue  # Kommentare oder leere Zeilen überspringen
+                    if "|" in zeile:
+                        falsch, richtig = zeile.split("|", 1)
+                        corrections[falsch.strip()] = richtig.strip()
+    return corrections
 
 # Gerät- und Synonym-Liste
 device_dict = {
     "rollade": ["rollladen", "rollo", "rollen", "jalousie", "war laden", "lade", "war lade", "roller de", "vorlage", "rolle hatte"],
     "licht": ["lampe", "beleuchtung", "lichtquelle"],
     "hilfe": ["hilft", "hilfen"],
-    "bei": ["Bei", "bye"],
-    # Weitere Geräte und deren Synonyme können hier hinzugefügt werden
+    "bei": ["bei", "bye"],
 }
 
 # Normalisierung der Gerätebezeichner
 def normalize_device(text):
     for device, synonyms in device_dict.items():
         for synonym in synonyms:
-            text = text.replace(synonym, device)  # Ersetze jedes Synonym durch das korrekte Gerät
+            text = text.replace(synonym, device)
     return text
-
-def normalize_text(text):
-    if not text:
-        print("❌ Der Text ist leer!")
-        return text  # Wenn der Text leer ist, wird nichts weiter geändert
-
-    corrections = {
-        "ron t r": "runter",
-        "ronter": "runter",
-        "unter": "runter",
-        "darunter": "runter",
-        "darrunter": "runter",
-        "rrunter": "runter",
-        "hochher": "hoch",
-        "man": "",
-        "rolle": "rollade",  # Diese Zeile sollte nach der Behandlung von "rolrollade" kommen
-        "roller": "rollade",
-        "rollladen": "rollade",
-        "rollo": "rollade",
-        "hilfen hilfe zu rollade": "hilfe zu rollade",
-        "hilft zu rollade": "hilfe zu rollade",
-        "hilfe bei war rollade": "hilfe zu rollade",
-        "hilfe bei rourollade": "hilfe zu rollade",
-        "hilfe zu war laden": "hilfe zu rollade",
-        "tageslicht an": "tageslicht an",  # Der Befehl bleibt unverändert
-        "tageslicht aus": "tageslicht aus",  # Der Befehl bleibt unverändert
-        "urlaubsmodus aktivieren": "urlaubsmodus aktivieren",  # Unverändert, Befehl wird durchgelassen
-        "urlaub einschalten": "urlaubsmodus aktivieren",  # Umwandeln in den gleichen Befehl wie oben
-        "normalmodus an": "normalmodus an",  # Unverändert, Befehl wird durchgelassen
-        "zurück auf normal": "normalmodus an",  # Umwandeln in den gleichen Befehl wie oben
-        "urlaubs modus": "urlaubsmodus",
-        "rollade automatik": "rolladenautomatik",
-        "temperatur wohnzimmer": "temperatur wohnzimmer",  # Für Temperaturabfrage
-    }
-
-    # Verhindern, dass "rolrollade" fälschlicherweise in "rollade" umgewandelt wird
-    if "rolrollade" in text:
-        text = text.replace("rolrollade", "rollade")
-    if "rolrollade" in text:
-        text = text.replace("rourollade", "rollade")
-    if "rolrollade" in text:
-            text = text.replace("roll rollade", "rollade")
-
-
-    for wrong, correct in corrections.items():
-        text = text.replace(wrong, correct)
-
-    return text.strip()
 
 # Füllwörter entfernen
 def remove_fuellwoerter(text):
@@ -71,17 +38,6 @@ def remove_fuellwoerter(text):
         "in", "wer", "im", "der", "lade", "nordlicht", "fahre", "ihre", "farbe",
     ]
     return " ".join([w for w in text.split() if w not in fuellwoerter])
-
-# Rollade automatisch ergänzen
-def auto_ergaenze_rollade(text):
-    bewegung_woerter = ["raus", "rein", "runter", "unter", "rauf", "hoch", "auf"]
-    rollo_begriffe = ["rollade"]
-    if not any(w in text for w in rollo_begriffe):
-        for wort in bewegung_woerter:
-            if wort in text.split():
-                print("🧠 Ergänze fehlendes Gerät: Rollade")
-                return text.replace(wort, f"rollade {wort}")
-    return text
 
 # Zahlwörter ersetzen
 def ersetze_zahlwoerter(text):
@@ -113,17 +69,20 @@ def ersetze_zahlwoerter(text):
 # Text bereinigen und normalisieren
 def clean_text(user_input):
     print(f"🎧 Original: {user_input}")
-    
-    # Stellen Sie sicher, dass die Eingabe nicht leer ist, bevor sie an die Funktion weitergegeben wird
     if not user_input:
         print("❌ Eingabe ist leer!")
         return ""
 
-    text = normalize_device(user_input)  # Zuerst die Gerätebezeichner normalisieren
-    text = remove_fuellwoerter(text)  # Füllwörter entfernen
-    text = normalize_text(text)  # Zuerst die bekannten Fehler und Synonyme normalisieren
-    print(f"🧹 Gefiltert: {text}")
-   # text = auto_ergaenze_rollade(text)  # Rolladen-Devices automatisch ergänzen
-    text = ersetze_zahlwoerter(text)  # Zahlwörter umwandeln
+    # Korrekturen laden
+    corrections = lade_korrekturen()
+
+    text = user_input.lower()
+    for wrong, correct in corrections.items():
+        text = text.replace(wrong, correct)
+
+    text = normalize_device(text)
+    text = remove_fuellwoerter(text)
+    text = ersetze_zahlwoerter(text)
+
     print(f"✅ Ergebnis: {text}")
     return text

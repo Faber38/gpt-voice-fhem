@@ -26,9 +26,13 @@ Haus Alarmanlage ein
 Haus Alarmanlage aus
 tageslicht an
 tageslicht aus
+wasser an|einschalten|ein
+wasser aus|ausschalten
 urlaubsmodus an|aktivieren|einschalten
 normalmodus an|aktivieren|einschalten
 rolladenautomatik an|einsschalten
 rolladenautomatik aus|ausschalten
 Temperatur Wohnzimmer
+Apple TV|Appletv an|einschalten|ein
+Apple TV|Appletv aus|ausschalten
 

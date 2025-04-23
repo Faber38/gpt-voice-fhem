@@ -1,0 +1,8 @@
+# falsch|richtig
+hilfen hilfe zu rollade|hilfe zu rollade
+hilft zu rollade|hilfe zu rollade
+hilfe bei war rollade|hilfe zu rollade
+hilfe bei rourollade|hilfe zu rollade
+hilfe zu war laden|hilfe zu rollade
+hochher|hoch
+    
