@@ -18,7 +18,7 @@ def lade_korrekturen(pfad="/opt/script/korrektur"):
 
 # Gerät- und Synonym-Liste
 device_dict = {
-    "rollade": ["rollladen", "rollo", "rollen", "jalousie", "war laden", "lade", "war lade", "roller de", "vorlage", "rolle hatte"],
+    "rollade": ["rollladen", "rollo", "rollen", "jalousie", "war laden", "lade", "war lade", "rolrollade", "roller de", "vorlage", "rolle hatte"],
     "licht": ["lampe", "beleuchtung", "lichtquelle"],
     "hilfe": ["hilft", "hilfen"],
     "bei": ["bei", "bye"],
@@ -34,7 +34,7 @@ def normalize_device(text):
 # Füllwörter entfernen
 def remove_fuellwoerter(text):
     fuellwoerter = [
-        "bitte", "mach", "mache", "kannst", "du", "das", "den", "die",
+        "bitte", "man", "mach", "mache", "kannst", "du", "das", "den", "die",
         "in", "wer", "im", "der", "lade", "nordlicht", "fahre", "ihre", "farbe",
     ]
     return " ".join([w for w in text.split() if w not in fuellwoerter])

@@ -1,3 +1,4 @@
 # falsch|richtig
 darunter|runter
 darrunter|runter
+dealer|diele

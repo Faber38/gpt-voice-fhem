@@ -33,6 +33,6 @@ normalmodus an|aktivieren|einschalten
 rolladenautomatik an|einsschalten
 rolladenautomatik aus|ausschalten
 Temperatur Wohnzimmer
-Apple TV|Appletv an|einschalten|ein
-Apple TV|Appletv aus|ausschalten
+Box|box an|einschalten|ein
+Box|box aus|ausschalten
 

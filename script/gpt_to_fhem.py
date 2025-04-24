@@ -8,6 +8,7 @@ import subprocess
 
 # 📄 Konfiguration
 DEVICE_FILE = "/opt/script/device.txt"
+UNRECOGNIZED_LOG = "/opt/script/unrecognized.log"
 config = configparser.ConfigParser()
 config.read("/opt/script/fhem_auth.conf")
 
@@ -35,29 +36,27 @@ except Exception as e:
     sys.exit(1)
 
 if "hilfe" in filtered:
-        print("🎧 Befehl erkannt: Hilfe anfordern")
-    
-        if "rollade" in filtered:
-            help_file_path = "/opt/sound/hilfe/rolladen.wav"
-            print("🎧 Hilfe zu Rollade wird abgespielt.")
-        elif "licht" in filtered:
-            help_file_path = "/opt/sound/hilfe/licht.wav"
-            print("🎧 Hilfe zu Licht wird abgespielt.")
-        else:
-            print("❌ Keine spezifische Hilfe gefunden.")
-            sys.exit(0)
-    
-        if os.path.exists(help_file_path):
-            print(f"▶️ Spiele Hilfe-Datei: {help_file_path}")
-            with open("/opt/script/audio_device.conf", "r") as f:
-                alsa_dev = f.read().strip()
-            
-            subprocess.Popen(["aplay", "-D", alsa_dev, help_file_path])
-            
-        else:
-            print(f"❌ Hilfe-Datei nicht gefunden: {help_file_path}")
+    print("🎧 Befehl erkannt: Hilfe anfordern")
+    if "rollade" in filtered:
+        help_file_path = "/opt/sound/hilfe/rolladen.wav"
+        print("🎧 Hilfe zu Rollade wird abgespielt.")
+    elif "licht" in filtered:
+        help_file_path = "/opt/sound/hilfe/licht.wav"
+        print("🎧 Hilfe zu Licht wird abgespielt.")
+    else:
+        print("❌ Keine spezifische Hilfe gefunden.")
+        with open(UNRECOGNIZED_LOG, "a") as log:
+            log.write(f"Hilfe unklar: {user_input}\n")
         sys.exit(0)
-    
+
+    if os.path.exists(help_file_path):
+        print(f"▶️ Spiele Hilfe-Datei: {help_file_path}")
+        with open("/opt/script/audio_device.conf", "r") as f:
+            alsa_dev = f.read().strip()
+        subprocess.Popen(["aplay", "-D", alsa_dev, help_file_path])
+    else:
+        print(f"❌ Hilfe-Datei nicht gefunden: {help_file_path}")
+    sys.exit(0)
 
 # Falls es kein Hilfe-Befehl war, fortfahren
 print("📄 Erlaubte Kombinationen:")
@@ -106,7 +105,13 @@ if len(matches) == 1:
             f.write("ok")
     except Exception as e:
         print(f"❌ Fehler beim Senden an FHEM: {e}")
+        with open(UNRECOGNIZED_LOG, "a") as log:
+            log.write(f"Sendefehler: {user_input}\n")
 elif len(matches) > 1:
     print(f"❌ Mehrdeutige Treffer: {matches}")
+    with open(UNRECOGNIZED_LOG, "a") as log:
+        log.write(f"Mehrdeutig: {user_input}\n")
 else:
     print("❌ Keine passende Kombination gefunden.")
+    with open(UNRECOGNIZED_LOG, "a") as log:
+        log.write(f"Nicht erkannt: {user_input}\n")
