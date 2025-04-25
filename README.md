@@ -23,7 +23,7 @@ Die Erkennung erfolgt über Vosk (lokale Spracherkennung) und die Verarbeitung �
 <ul>
   <li><strong>Wakeword:</strong> "niko"</li>
   <li><strong>TTS:</strong> Coqui / lokale Sprachausgabe</li>
-  <li><strong>Hardware:</strong> PowerConf S3 Mikrofon, RTX 3060 (CUDA)</li>
+  <li><strong>Hardware:</strong> PowerConf S3 Lautsprecher & RØDE Wireless GO II Mikrofon, RTX 3060 (CUDA)</li>
   <li><strong>Modelle:</strong> TinyLlama, Phi-2</li>
 </ul>
 
