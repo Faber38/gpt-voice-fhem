@@ -3,7 +3,6 @@ import sys
 import requests
 import os
 import configparser
-from filter import clean_text  # Filterfunktion einbinden
 import subprocess
 
 # 📄 Konfiguration
@@ -22,10 +21,12 @@ if len(sys.argv) < 2:
     print("❌ Bitte gib einen Sprachbefehl ein.")
     sys.exit(1)
 
-# 🔠 Text säubern, normalisieren und filtern
-user_input = sys.argv[1].lower()
+# 🔠 Text direkt weiterverarbeiten – ohne erneutes Filtern
+user_input = sys.argv[1].lower().strip().rstrip(".!?")
 print(f"📥 Eingabe: {user_input}")
-filtered = clean_text(user_input)  # ← nutzt jetzt filter.py
+
+filtered = user_input  # NICHT erneut filtern!
+print(f"🚫 Kein erneutes Filtern → Verwende: {filtered}")
 
 # 📄 Datei laden
 try:

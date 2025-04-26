@@ -1,4 +1,5 @@
 import os
+import re  # ⬅️ oben sicherstellen!
 
 # 🔄 Korrekturen aus Dateien laden
 def lade_korrekturen(pfad="/opt/script/korrektur"):
@@ -42,19 +43,67 @@ def remove_fuellwoerter(text):
 # Zahlwörter ersetzen
 def ersetze_zahlwoerter(text):
     worte = {
-        "null": "0",
+        "eins": "1", 
+        "zwei": "2",
+        "drei": "3",
+        "vier": "4",
         "fünf": "5",
+        "sechs": "6",
+        "sieben": "7",
+        "acht": "8",
+        "neun": "9",
         "zehn": "10",
+        "elf": "11",
+        "zwölf": "12",
+        "dreizehn": "13",
+        "vierzehn": "14",
         "fünfzehn": "15",
+        "sechzehn": "16",
+        "siebzehn": "17",
+        "achtzehn": "18",
+        "neunzehn": "19",
         "zwanzig": "20",
+        "einundzwanzig": "21",
+        "zweiundzwanzig": "22",
+        "dreiundzwanzig": "23",
+        "vierundzwanzig": "24",
         "fünfundzwanzig": "25",
+        "sechsundzwanzig": "26",
+        "siebenundzwanzig": "27",
+        "achtundzwanzig": "28",
+        "neunundzwanzig": "29",
         "dreißig": "30",
+        "einunddreißig": "31",
+        "zweiunddreißig": "32",
+        "dreiunddreißig": "33",
+        "vierunddreißig": "34",
         "fünfunddreißig": "35",
+        "sechsunddreißig": "36",
+        "siebenunddreißig": "37",
+        "achtunddreißig": "38",
+        "neununddreißig": "39",
         "vierzig": "40",
+        "einundvierzig": "41",
+        "zweiundvierzig": "42",
+        "dreiundvierzig": "43",
+        "vierundvierzig": "44",
         "fünfundvierzig": "45",
+        "sechsundvierzig": "46",
+        "siebenundvierzig": "47",
+        "achtundvierzig": "48",
+        "neunundvierzig": "49",
         "fünfzig": "50",
+        "einundfünfzig": "51",
+        "zweiundfünfzig": "52",
+        "dreiundfünfzig": "53",
+        "vierundfünfzig": "54",
         "fünfundfünfzig": "55",
+        "sechsundfünfzig": "56",
+        "siebenundfünfzig": "57",
+        "achtundfünfzig": "58",
+        "neunundfünfzig": "59",
         "sechzig": "60",
+        # Ab hier 5er Schritte
         "fünfundsechzig": "65",
         "siebzig": "70",
         "fünfundsiebzig": "75",
@@ -66,6 +115,7 @@ def ersetze_zahlwoerter(text):
     }
     return " ".join([worte.get(w, w) for w in text.split()])
 
+
 # Text bereinigen und normalisieren
 def clean_text(user_input):
     print(f"🎧 Original: {user_input}")
@@ -73,10 +123,13 @@ def clean_text(user_input):
         print("❌ Eingabe ist leer!")
         return ""
 
-    # Korrekturen laden
     corrections = lade_korrekturen()
 
     text = user_input.lower()
+
+    # Bindestriche & Unterstriche entfernen
+    text = text.replace("-", " ").replace("_", " ")
+
     for wrong, correct in corrections.items():
         text = text.replace(wrong, correct)
 
@@ -84,5 +137,17 @@ def clean_text(user_input):
     text = remove_fuellwoerter(text)
     text = ersetze_zahlwoerter(text)
 
+    # 🔄 Automatische Umstellung…
+    match = re.search(r"(?:mach|erstelle|bitte)?\s*(?:einen|eine)?\s*(\d+)\s+(sekunden|minuten|stunden)\s+timer", text)
+    if match:
+        zahl = match.group(1)
+        einheit = match.group(2)
+        text = f"erstelle einen timer für {zahl} {einheit}"
+        print(f"🔄 Umgestellt: {text}")
+    # Punkt & Satzzeichen am Ende entfernen
+        text = text.strip().rstrip(".!?,")
+
     print(f"✅ Ergebnis: {text}")
     return text
+
+    

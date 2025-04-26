@@ -1,41 +1,62 @@
 #!/usr/bin/env python3
 import sounddevice as sd
-import scipy.io.wavfile as wavfile
-import numpy as np
 import wave
 import os
+import numpy as np
 
-# 🎙️ Aufnahmeparameter
-DEVICE_INDEX_FILE = "/opt/script/audio_index.conf"
-DURATION = 5  # Sekunden
-SAMPLE_RATE = 48000
-CHANNELS = 1
-FILENAME = "/tmp/test_mic.wav"
+# Aufnahmeparameter
+device_index_file = "/opt/script/audio_input.conf"
+alsa_device_file = "/opt/script/audio_device.conf"
 
-# 🎧 Gerät laden
-with open(DEVICE_INDEX_FILE, "r") as f:
-    device_index = int(f.read().strip())
-print(f"🎙 Aufnahme von Gerät {device_index} …")
+duration = 5  # Sekunden
+sample_rate = 48000
+channels = 2
+filename = "/tmp/test_mic.wav"
 
-# 🔴 Aufnahme starten
-recording = sd.rec(int(DURATION * SAMPLE_RATE), samplerate=SAMPLE_RATE, channels=CHANNELS, dtype='int16', device=device_index)
+# Gerät laden
+try:
+    with open(device_index_file, "r") as f:
+        device_index = int(f.read().strip())
+    print(f"Aufnahme von Gerät (Index): {device_index} …")
+except Exception as e:
+    print(f"Fehler beim Laden des Eingabe-Index: {e}")
+    exit(1)
+
+try:
+    with open(alsa_device_file, "r") as f:
+        alsa_device = f.read().strip()
+    print(f"Wiedergabe über ALSA-Gerät: {alsa_device}")
+except Exception as e:
+    print(f"Fehler beim Laden des Ausgabegeräts: {e}")
+    exit(1)
+
+# Geräteinfos anzeigen
+try:
+    info = sd.query_devices(device_index)
+    print(f"Geräteinfo: {info}")
+except Exception as e:
+    print(f"Fehler beim Abrufen der Geräteinfo: {e}")
+
+# Aufnahme starten
+print(f"Starte Aufnahme für {duration} Sekunden mit {sample_rate} Hz, {channels} Kanälen …")
+recording = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=channels, dtype='int16', device=device_index)
 sd.wait()
-print("🛑 Aufnahme beendet.")
+print("Aufnahme beendet.")
 
-# 💾 Speichern
-with wave.open(FILENAME, 'wb') as wf:
-    wf.setnchannels(CHANNELS)
+# Lautstärke erhöhen
+factor = 8  # Hier kannst du den Faktor anpassen
+recording = np.clip(recording * factor, -32768, 32767).astype('int16')
+print(f"Lautstärke um Faktor {factor} erhöht.")
+
+# Speichern als WAV
+with wave.open(filename, 'wb') as wf:
+    wf.setnchannels(channels)
     wf.setsampwidth(2)
-    wf.setframerate(SAMPLE_RATE)
+    wf.setframerate(sample_rate)
     wf.writeframes(recording.tobytes())
-print(f"✅ Gespeichert unter: {FILENAME}")
+print(f"Gespeichert unter: {filename}")
 
-# 🛠️ Mono → Stereo
-stereo = np.stack([recording.flatten(), recording.flatten()], axis=1)
+# Abspielen
+print("Spiele Aufnahme ab …")
+os.system(f"aplay -D {alsa_device} {filename}")
 
-# 🔁 Speichern als Stereo WAV
-wavfile.write(FILENAME, SAMPLE_RATE, stereo)
-
-# 🔊 Abspielen
-print("▶️ Spiele Aufnahme ab (Stereo) …")
-os.system(f"aplay -D hw:CARD=S3,DEV=0 {FILENAME}")

@@ -1,5 +1,5 @@
-KÜche Licht an|ein|einschalten
-Küche Licht aus|ausschalten
+küche Licht an|ein|einschalten
+küche Licht aus|ausschalten
 Wohnzimmer Licht an|ein|einschalten
 Wohnzimmer Licht aus|ausschalten
 Esszimmer Licht an|ein|einschalten

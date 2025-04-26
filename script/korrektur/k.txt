@@ -1,1 +1,2 @@
 # falsch|richtig
+Küche|küche

@@ -6,13 +6,14 @@ import subprocess
 import json
 import os
 import wave
+import contextlib
 import numpy as np
 import samplerate
 import random
 import time
 from vosk import Model, KaldiRecognizer
+from filter import clean_text
 
-# 🔊 Ausgabegerät aus Datei
 def get_output_device():
     try:
         with open("/opt/script/audio_device.conf", "r") as f:
@@ -21,154 +22,245 @@ def get_output_device():
         print(f"❌ Fehler beim Laden des Ausgabe-Geräts: {e}")
         return None
 
-# 🎤 Eingabegeräte-Index aus Datei
 def get_input_device_index():
     try:
-        with open("/opt/script/audio_index.conf", "r") as f:
+        with open("/opt/script/audio_input.conf", "r") as f:
             return int(f.read().strip())
     except Exception as e:
         print(f"❌ Fehler beim Laden des Input-Index: {e}")
         return None
 
-# ✅ Konfiguration
+def get_gain_factor():
+    try:
+        with open("/opt/script/mic_gain.conf", "r") as f:
+            return float(f.read().strip())
+    except Exception as e:
+        print(f"⚠️ Kein Verstärkungsfaktor gefunden, nutze Standard 1.0")
+        return 1.0
+
+def get_wav_duration(wav_path):
+    with contextlib.closing(wave.open(wav_path, 'r')) as f:
+        frames = f.getnframes()
+        rate = f.getframerate()
+        duration = frames / float(rate)
+        return duration
+
 SAMPLE_RATE = 48000
 VOSK_SAMPLE_RATE = 16000
-BUFFER_SIZE = 4000
+BUFFER_SIZE = 2048  # Kleinerer Puffer
 TRIGGER_WORD = "alexa"
-RECORD_SECONDS = 16
+RECORD_SECONDS = 14
 MODEL_PATH = "/opt/vosk/vosk-de"
 RESPONSES_DIR = "/opt/sound/responses"
 CONFIRM_DIR = "/opt/sound/confirm"
 ERROR_DIR = "/opt/sound/error"
 OUTPUT_FILE = "/tmp/command.wav"
 
-# 🆕 Plaudermodus-Variablen
 PLAUDER_MODUS = False
 LETZTER_SPRECHZEITPUNKT = 0
-PLAUDER_TIMEOUT = 30  # Sekunden
+PLAUDER_TIMEOUT = 30
 
-# 📥 Queue für Resampled Audio
 q = queue.Queue()
 
-# 📦 Modell laden
 print("🎧 Starte Wakeword-Erkennung … (sage 'alexa')")
 model = Model(MODEL_PATH)
 recognizer = KaldiRecognizer(model, VOSK_SAMPLE_RATE)
 
-# 🎤 Geräte holen
 input_device = get_input_device_index()
 output_device = get_output_device()
+gain_factor = get_gain_factor()
 
 if input_device is None:
     print("❌ Kein Input-Audio-Gerät gefunden.")
     sys.exit(1)
 
-# 🎧 Callback mit Resampling
 def callback(indata, frames, time, status):
     if status:
         print(status, file=sys.stderr)
-    resampled = samplerate.resample(indata, VOSK_SAMPLE_RATE / SAMPLE_RATE, 'sinc_best')
-    q.put(resampled.astype('int16').tobytes())
+    resampled = samplerate.resample(indata, VOSK_SAMPLE_RATE / SAMPLE_RATE, "sinc_fastest")
+    q.put(resampled.astype("int16").tobytes())
 
-# 🚀 Start
-with sd.InputStream(samplerate=SAMPLE_RATE, blocksize=BUFFER_SIZE, device=input_device,
-                    dtype='int16', channels=1, callback=callback):
-    print(f"🎙 Lausche auf Wakeword … (Device-Index: {input_device})")
+stream = sd.InputStream(
+    samplerate=SAMPLE_RATE,
+    blocksize=BUFFER_SIZE,
+    device=input_device,
+    dtype="int16",
+    channels=1,
+    callback=callback,
+)
+stream.start()
+print(f"🎙 Lausche auf Wakeword … (Device-Index: {input_device})")
 
-    while True:
-        if PLAUDER_MODUS and time.time() - LETZTER_SPRECHZEITPUNKT > PLAUDER_TIMEOUT:
-            print("⏳ Plaudermodus automatisch beendet (Timeout).")
-            PLAUDER_MODUS = False
+while True:
+    if PLAUDER_MODUS and time.time() - LETZTER_SPRECHZEITPUNKT > PLAUDER_TIMEOUT:
+        print("⏳ Plaudermodus automatisch beendet (Timeout).")
+        PLAUDER_MODUS = False
 
-        data = q.get()
+    data = q.get()
 
-        if recognizer.AcceptWaveform(data):
-            result = json.loads(recognizer.Result())
-            erkannter_text = result.get("text", "")
-            print(f"📄 Erkannt: {erkannter_text}")
+    if recognizer.AcceptWaveform(data):
+        result = json.loads(recognizer.Result())
+        erkannter_text = result.get("text", "")
+        print(f"📄 Erkannt: {erkannter_text}")
 
-            if TRIGGER_WORD in erkannter_text.lower():
-                print(f"✅ Wakeword erkannt: {TRIGGER_WORD}")
+        if TRIGGER_WORD in erkannter_text.lower():
+            print(f"✅ Wakeword erkannt: {TRIGGER_WORD}")
 
-                # 🔊 Zufällige Antwort abspielen
-                response_files = [f for f in os.listdir(RESPONSES_DIR) if f.endswith(".wav")]
-                if response_files:
-                    chosen = random.choice(response_files)
-                    wav_path = os.path.join(RESPONSES_DIR, chosen)
-                    print(f"▶️ Spiele: {chosen}")
-                    if output_device:
-                        subprocess.Popen(["aplay", "-D", output_device, wav_path])
-                    else:
-                        print("⚠️ Kein gültiges Audio-Ausgabegerät – kann WAV nicht abspielen.")
+            stream.stop()
+            print("🔇 Mikrofon gestoppt …")
 
-                LETZTER_SPRECHZEITPUNKT = time.time()
-                print("🎙 Aufnahme beginnt …")
-                recorded_chunks = []
-                max_chunks = int(RECORD_SECONDS * VOSK_SAMPLE_RATE / BUFFER_SIZE)
-
-                for _ in range(max_chunks):
-                    recorded_chunks.append(q.get())
-
-                time.sleep(0.2)
-                try:
-                    while True:
-                        recorded_chunks.append(q.get_nowait())
-                except queue.Empty:
-                    pass
-
-                print("🛑 Aufnahme beendet.")
-                audio_data = b''.join(recorded_chunks)
-                with wave.open(OUTPUT_FILE, 'wb') as wf:
-                    wf.setnchannels(1)
-                    wf.setsampwidth(2)
-                    wf.setframerate(VOSK_SAMPLE_RATE)
-                    wf.writeframes(audio_data)
-
-                print(f"💾 Gespeichert unter: {OUTPUT_FILE}")
-
-                # 🧠 Transkription aus WAV
-                wf = wave.open(OUTPUT_FILE, "rb")
-                recognizer = KaldiRecognizer(model, VOSK_SAMPLE_RATE)
-                print("🧠 Verarbeite gesprochene Eingabe …")
-                while True:
-                    chunk = wf.readframes(BUFFER_SIZE)
-                    if len(chunk) == 0:
-                        break
-                    recognizer.AcceptWaveform(chunk)
-
-                result = json.loads(recognizer.FinalResult())
-                text = result.get("text", "")
-                print(f"📝 Erkannter Text: {text}")
-
-                LETZTER_SPRECHZEITPUNKT = time.time()
-
-                if "rede mit mir" in text.lower():
-                    print("🗣️ Plaudermodus aktiviert.")
-                    PLAUDER_MODUS = True
-                    subprocess.run(["/opt/venv/bin/python", "/opt/script/gpt_chat.py", "Okay, ich höre zu."])
-                    continue
-
-                if PLAUDER_MODUS:
-                    subprocess.run(["/opt/venv/bin/python", "/opt/script/gpt_chat.py", text])
-                    continue
-
-                print("🤖 Sende an GPT …")
-                subprocess.run(["/opt/venv/bin/python", "/opt/script/gpt_to_fhem.py", text])
-
-                if os.path.exists("/tmp/fhem_confirmed"):
-                    confirm_files = [f for f in os.listdir(CONFIRM_DIR) if f.endswith(".wav")]
-                    if confirm_files:
-                        confirm_wav = random.choice(confirm_files)
-                        confirm_path = os.path.join(CONFIRM_DIR, confirm_wav)
-                        print(f"▶️ Bestätigung: {confirm_wav}")
-                        if output_device:
-                            subprocess.Popen(["aplay", "-D", output_device, confirm_path])
-                    os.remove("/tmp/fhem_confirmed")
+            response_files = [f for f in os.listdir(RESPONSES_DIR) if f.endswith(".wav")]
+            if response_files:
+                chosen = random.choice(response_files)
+                wav_path = os.path.join(RESPONSES_DIR, chosen)
+                print(f"▶️ Spiele: {chosen}")
+                if output_device:
+                    subprocess.Popen(["aplay", "-D", output_device, wav_path])
+                    duration = get_wav_duration(wav_path)
+                    print(f"🎵 WAV-Dauer: {duration:.2f} Sekunden")
+                    time.sleep(duration + 1.0)
                 else:
-                    error_files = [f for f in os.listdir(ERROR_DIR) if f.endswith(".wav")]
-                    if error_files:
-                        error_wav = random.choice(error_files)
-                        error_path = os.path.join(ERROR_DIR, error_wav)
-                        print(f"❌ Fehlerausgabe: {error_wav}")
-                        if output_device:
-                            subprocess.Popen(["aplay", "-D", output_device, error_path])
+                    print("⚠️ Kein gültiges Audio-Ausgabegerät – kann WAV nicht abspielen.")
+
+            stream.start()
+            print("🎙 Mikrofon wieder aktiv – Aufnahme beginnt …")
+
+            LETZTER_SPRECHZEITPUNKT = time.time()
+            recorded_chunks = []
+            max_chunks = int(RECORD_SECONDS * VOSK_SAMPLE_RATE / BUFFER_SIZE)
+
+            for _ in range(max_chunks):
+                recorded_chunks.append(q.get())
+
+            time.sleep(0.2)
+            try:
+                while True:
+                    recorded_chunks.append(q.get_nowait())
+            except queue.Empty:
+                pass
+
+            print("🛑 Aufnahme beendet.")
+            audio_data = b"".join(recorded_chunks)
+
+            # Verstärken
+            print(f"🎚 Verstärke Aufnahme um Faktor {gain_factor} …")
+            audio_np = np.frombuffer(audio_data, dtype=np.int16)
+            audio_np = np.clip(audio_np * gain_factor, -32768, 32767).astype(np.int16)
+            amplified_audio_data = audio_np.tobytes()
+
+            with wave.open(OUTPUT_FILE, "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(VOSK_SAMPLE_RATE)
+                wf.writeframes(amplified_audio_data)
+
+            print(f"💾 Gespeichert unter: {OUTPUT_FILE}")
+
+            print("🧠 Verarbeite gesprochene Eingabe mit Whisper (Deutsch) …")
+            try:
+                subprocess.run(
+                    [
+                        "/opt/whisper.cpp/build/bin/whisper-cli",
+                        "-m",
+                        "/opt/whisper.cpp/models/ggml-medium.bin",
+                        "-f",
+                        OUTPUT_FILE,
+                        "-otxt",
+                        "-l",
+                        "de",
+                    ]
+                )
+                with open("/tmp/command.wav.txt", "r", encoding="utf-8") as f:
+                    text = f.read().strip()
+                print(f"📝 Erkannter Text (Whisper): {text}")
+            except Exception as e:
+                print(f"❌ Fehler bei Whisper-Transkription: {e}")
+                text = ""
+
+            if not text:
+                print("⚠️ Kein Text erkannt, überspringe Verarbeitung.")
+                continue
+
+            print("⚡ Starte Filter …")
+            filtered_text = clean_text(text)
+            print(f"🧹 Gefilterter Text: {filtered_text}")
+
+            LETZTER_SPRECHZEITPUNKT = time.time()
+
+            # Hier dein Timer / GPT / FHEM Code (wie gehabt) ...
+
+
+
+            if "timer" in filtered_text:
+                try:
+                    parts = []
+                    if "für" in filtered_text:
+                        parts = filtered_text.lower().split("für")[1].strip().split(" ")
+                    else:
+                        parts = filtered_text.lower().replace("timer", "").strip().split(" ")
+
+                    print(f"🔍 Timer Teile: {parts}")
+
+                    timer_duration = int(parts[0])
+                    time_unit = parts[1].strip().rstrip(".").lower()
+
+                    erlaubte_einheiten = ["sekunden", "minuten", "stunden"]
+                    if time_unit not in erlaubte_einheiten:
+                        print(f"❌ Unbekannte Zeiteinheit: {time_unit}.")
+                    else:
+                        print(f"🔔 Timer erkannt: {timer_duration} {time_unit}")
+                        subprocess.Popen(
+                            [
+                                "/opt/venv/bin/python",
+                                "/opt/script/timer.py",
+                                str(timer_duration),
+                                time_unit,
+                            ]
+                        )
+                    continue
+
+                except Exception as e:
+                    print(f"❌ Fehler bei der Timer-Erkennung: {e}")
+                    continue
+
+            if "rede mit mir" in filtered_text.lower():
+                PLAUDER_MODUS = True
+                subprocess.run(
+                    [
+                        "/opt/venv/bin/python",
+                        "/opt/script/gpt_chat.py",
+                        filtered_text,
+                    ]
+                )
+                continue
+
+            print(f"🤖 Sende an GPT … Text: '{filtered_text}'")
+            try:
+                cmd = f'/opt/venv/bin/python /opt/script/gpt_to_fhem.py "{filtered_text}"'
+                print(f"💻 Ausführen: {cmd}")
+
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+                print(f"📤 GPT_to_FHEM Output: '{result.stdout.strip()}'")
+                if result.stderr:
+                    print(f"❌ GPT_to_FHEM Fehler: '{result.stderr.strip()}'")
+            except Exception as e:
+                print(f"❌ Fehler beim Start von gpt_to_fhem.py: {e}")
+
+            if os.path.exists("/tmp/fhem_confirmed"):
+                confirm_files = [f for f in os.listdir(CONFIRM_DIR) if f.endswith(".wav")]
+                if confirm_files:
+                    confirm_wav = random.choice(confirm_files)
+                    confirm_path = os.path.join(CONFIRM_DIR, confirm_wav)
+                    print(f"▶️ Bestätigung: {confirm_wav}")
+                    if output_device:
+                        subprocess.Popen(["aplay", "-D", output_device, confirm_path])
+                os.remove("/tmp/fhem_confirmed")
+            else:
+                error_files = [f for f in os.listdir(ERROR_DIR) if f.endswith(".wav")]
+                if error_files:
+                    error_wav = random.choice(error_files)
+                    error_path = os.path.join(ERROR_DIR, error_wav)
+                    print(f"❌ Fehlerausgabe: {error_wav}")
+                    if output_device:
+                        subprocess.Popen(["aplay", "-D", output_device, error_path])
