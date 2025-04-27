@@ -6,8 +6,8 @@ Esszimmer Licht an|ein|einschalten
 Esszimmer Licht aus|ausschalten
 Diele Licht an|ein|einschalten
 Diele Licht aus|ausschalten
-Terasse Licht an|ein|einschalten
-Terasse Licht aus|ausschalten
+Terrasse Licht an|ein|einschalten
+Terrasse Licht aus|ausschalten
 Küche Rollade hoch|rauf
 Küche Rollade runter|zu
 Wohnzimmer Rollade rauf|hoch

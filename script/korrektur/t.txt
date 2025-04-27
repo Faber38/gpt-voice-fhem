@@ -1,6 +1,5 @@
 # falsch|richtig
-tageslicht an|tageslicht an
-tageslicht aus|tageslicht aus
+tageslicht an|tageslicht ein
 thimer|timer
 time|timer
 teiber|timer
