@@ -8,7 +8,7 @@ Die Erkennung erfolgt über Vosk (lokale Spracherkennung) und die Verarbeitung �
 ### 💡 Features
 
 - Wakeword-Erkennung ("niko") mit Vosk
-- Sprachaufnahme & Transkription lokal (Vosk)
+- Sprachaufnahme & Transkription lokal (**faster-whisper** für Sound → Text)
 - Verarbeitung per lokalem GPT-Modell (z. B. TinyLlama)
 - Gerätesteuerung über FHEM (HTTP API)
 - Rückmeldung per Sprachausgabe (Coqui TTS)
@@ -22,6 +22,7 @@ Die Erkennung erfolgt über Vosk (lokale Spracherkennung) und die Verarbeitung �
 <h3 style="color:#117a65;">🔊 Details:</h3>
 <ul>
   <li><strong>Wakeword:</strong> "niko"</li>
+  <li><strong>Transkription:</strong> faster-whisper (CUDA-beschleunigt)</li>
   <li><strong>TTS:</strong> Coqui / lokale Sprachausgabe</li>
   <li><strong>Hardware:</strong> PowerConf S3 Lautsprecher & RØDE Wireless GO II Mikrofon, RTX 3060 (CUDA)</li>
   <li><strong>Modelle:</strong> TinyLlama, Phi-2</li>
@@ -37,5 +38,5 @@ Die Erkennung erfolgt über Vosk (lokale Spracherkennung) und die Verarbeitung �
 <hr>
 <p style="font-size:small; color:#555;">Letzte Aktualisierung: April 2025</p>
 
-
 👉 Für die vollständige Einrichtung siehe [INSTALL.md](INSTALL.md)
+

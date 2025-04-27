@@ -1,2 +1,3 @@
 # falsch|richtig
 minutes|minuten
+markisen|markise

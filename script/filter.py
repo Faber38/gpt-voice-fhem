@@ -19,7 +19,7 @@ def lade_korrekturen(pfad="/opt/script/korrektur"):
 
 # Gerät- und Synonym-Liste
 device_dict = {
-    "rollade": ["rollladen", "rollo", "rollen", "jalousie", "war laden", "lade", "war lade", "rolrollade", "roller de", "vorlage", "rolle hatte"],
+    "rollade": ["rollo", "jalousie", "vorlage"],
     "licht": ["lampe", "beleuchtung", "lichtquelle"],
     "hilfe": ["hilft", "hilfen"],
     "bei": ["bei", "bye"],
@@ -127,8 +127,9 @@ def clean_text(user_input):
 
     text = user_input.lower()
 
-    # Bindestriche & Unterstriche entfernen
-    text = text.replace("-", " ").replace("_", " ")
+    # Alles außer Buchstaben, Zahlen, Leerzeichen → ersetzen
+    text = re.sub(r'[^a-zA-Z0-9äöüÄÖÜß\s]', ' ', text)
+    
 
     for wrong, correct in corrections.items():
         text = text.replace(wrong, correct)
@@ -138,7 +139,8 @@ def clean_text(user_input):
     text = ersetze_zahlwoerter(text)
 
     # 🔄 Automatische Umstellung…
-    match = re.search(r"(?:mach|erstelle|bitte)?\s*(?:einen|eine)?\s*(\d+)\s+(sekunden|minuten|stunden)\s+timer", text)
+    match = re.search(r"(?:timer)?\s*(?:für)?\s*(\d+)\s+(sekunden|minuten|stunden)", text)
+    
     if match:
         zahl = match.group(1)
         einheit = match.group(2)

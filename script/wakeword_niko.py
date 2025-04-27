@@ -12,6 +12,7 @@ import samplerate
 import random
 import time
 from vosk import Model, KaldiRecognizer
+from faster_whisper import WhisperModel  # 🆕
 from filter import clean_text
 
 def get_output_device():
@@ -45,9 +46,13 @@ def get_wav_duration(wav_path):
         duration = frames / float(rate)
         return duration
 
+# 🧠 Faster-Whisper Modell laden
+print("🚀 Lade Faster-Whisper Modell …")
+fw_model = WhisperModel("small", device="cuda", compute_type="float16")
+
 SAMPLE_RATE = 48000
 VOSK_SAMPLE_RATE = 16000
-BUFFER_SIZE = 2048  # Kleinerer Puffer
+BUFFER_SIZE = 2048
 TRIGGER_WORD = "alexa"
 RECORD_SECONDS = 14
 MODEL_PATH = "/opt/vosk/vosk-de"
@@ -77,7 +82,8 @@ if input_device is None:
 def callback(indata, frames, time, status):
     if status:
         print(status, file=sys.stderr)
-    resampled = samplerate.resample(indata, VOSK_SAMPLE_RATE / SAMPLE_RATE, "sinc_fastest")
+    mono_data = np.mean(indata, axis=1, keepdims=True)
+    resampled = samplerate.resample(mono_data, VOSK_SAMPLE_RATE / SAMPLE_RATE, "sinc_best")
     q.put(resampled.astype("int16").tobytes())
 
 stream = sd.InputStream(
@@ -85,7 +91,7 @@ stream = sd.InputStream(
     blocksize=BUFFER_SIZE,
     device=input_device,
     dtype="int16",
-    channels=1,
+    channels=2,
     callback=callback,
 )
 stream.start()
@@ -118,9 +124,7 @@ while True:
                     subprocess.Popen(["aplay", "-D", output_device, wav_path])
                     duration = get_wav_duration(wav_path)
                     print(f"🎵 WAV-Dauer: {duration:.2f} Sekunden")
-                    time.sleep(duration + 1.0)
-                else:
-                    print("⚠️ Kein gültiges Audio-Ausgabegerät – kann WAV nicht abspielen.")
+                    time.sleep(duration + 0.5)
 
             stream.start()
             print("🎙 Mikrofon wieder aktiv – Aufnahme beginnt …")
@@ -142,7 +146,6 @@ while True:
             print("🛑 Aufnahme beendet.")
             audio_data = b"".join(recorded_chunks)
 
-            # Verstärken
             print(f"🎚 Verstärke Aufnahme um Faktor {gain_factor} …")
             audio_np = np.frombuffer(audio_data, dtype=np.int16)
             audio_np = np.clip(audio_np * gain_factor, -32768, 32767).astype(np.int16)
@@ -156,25 +159,18 @@ while True:
 
             print(f"💾 Gespeichert unter: {OUTPUT_FILE}")
 
-            print("🧠 Verarbeite gesprochene Eingabe mit Whisper (Deutsch) …")
+            print("🧠 Verarbeite gesprochene Eingabe mit Faster-Whisper (Deutsch) …")
             try:
-                subprocess.run(
-                    [
-                        "/opt/whisper.cpp/build/bin/whisper-cli",
-                        "-m",
-                        "/opt/whisper.cpp/models/ggml-medium.bin",
-                        "-f",
-                        OUTPUT_FILE,
-                        "-otxt",
-                        "-l",
-                        "de",
-                    ]
-                )
-                with open("/tmp/command.wav.txt", "r", encoding="utf-8") as f:
-                    text = f.read().strip()
-                print(f"📝 Erkannter Text (Whisper): {text}")
+                segments, info = fw_model.transcribe(OUTPUT_FILE, beam_size=5, language="de")
+
+                text = ""
+                for segment in segments:
+                    text += segment.text.strip() + " "
+                text = text.strip()
+
+                print(f"📝 Erkannter Text (Faster-Whisper): {repr(text)}")
             except Exception as e:
-                print(f"❌ Fehler bei Whisper-Transkription: {e}")
+                print(f"❌ Fehler bei Faster-Whisper: {e}")
                 text = ""
 
             if not text:
@@ -185,11 +181,12 @@ while True:
             filtered_text = clean_text(text)
             print(f"🧹 Gefilterter Text: {filtered_text}")
 
+            if "timer" in filtered_text:
+                print(f"🔔 Timer-Trigger erkannt in: {filtered_text}")
+            else:
+                print(f"❌ Kein Timer-Trigger in: {filtered_text}")
+
             LETZTER_SPRECHZEITPUNKT = time.time()
-
-            # Hier dein Timer / GPT / FHEM Code (wie gehabt) ...
-
-
 
             if "timer" in filtered_text:
                 try:

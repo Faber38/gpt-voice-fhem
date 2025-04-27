@@ -1,3 +1,6 @@
 # falsch|richtig
 ein|ein
 an|ein
+nestzimmer|esszimmer
+S-Zimmer|esszimmer
+best zimmer|esszimmer

@@ -44,7 +44,7 @@ sd.wait()
 print("Aufnahme beendet.")
 
 # Lautstärke erhöhen
-factor = 8  # Hier kannst du den Faktor anpassen
+factor = 30  # Hier kannst du den Faktor anpassen
 recording = np.clip(recording * factor, -32768, 32767).astype('int16')
 print(f"Lautstärke um Faktor {factor} erhöht.")
 

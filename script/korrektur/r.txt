@@ -7,3 +7,7 @@ rollladen|rollade
 rollo|rollade
 rollade automatik|rolladenautomatik
 rollrollade|rollade
+rollrollade|rollade
+drauf|rauf
+hinaus|raus
+hinein|rein

@@ -8,31 +8,30 @@ Diele Licht an|ein|einschalten
 Diele Licht aus|ausschalten
 Terasse Licht an|ein|einschalten
 Terasse Licht aus|ausschalten
-Küche Rollade|Rolladen|Rollo hoch|rauf|%
-Küche Rolladen runter|zu|%
-Wohnzimmer Rollade|Rollo|Rolladen rauf|hoch|auf|%
-Wohnzimmer Rollade|Rollo|Rolladen runter|zu|%
-Diele Rollade|Rollo|Rolladen rauf|hoch|auf|%
-Diele Rollade|Rollo|Rolladen runter|%
-Terassentür Rollade|Rollo|Rolladen rauf|hoch|auf|%
-Terassentür Rollade|Rollo|Rolladen runter|%
-Bad Rollade|Rollo|Rolladen rauf|hoch|auf|%
-Bad Rollade|Rollo|Rolladen runter|%
-Schlafzimmer Rollade|Rollo|Rolladen rauf|hoch|auf|%
-Schlafzimmer Rollade|Rollo|Rolladen runter|%
-Markise raus|rausfahren|ausfahren|%
-Markise rein|reinfahren|einfahren|%
+Küche Rollade hoch|rauf
+Küche Rollade runter|zu
+Wohnzimmer Rollade rauf|hoch
+Wohnzimmer Rollade runter|zu
+Diele Rollade rauf|hoch
+Diele Rollade runter|zu
+terrassentür rollade rauf
+terrassentür rollade runter
+Bad Rollade rauf|hoch
+Bad Rollade runter|zu
+Schlafzimmer Rollade rauf|hoch
+Schlafzimmer Rollade runter|zu
+Markise raus
+Markise rein
 Haus Alarmanlage ein
 Haus Alarmanlage aus
-tageslicht an
+tageslicht an|ein
 tageslicht aus
-wasser an|einschalten|ein
-wasser aus|ausschalten
+wasser an
+wasser aus
 urlaubsmodus an|aktivieren|einschalten
 normalmodus an|aktivieren|einschalten
 rolladenautomatik an|einsschalten
 rolladenautomatik aus|ausschalten
-Temperatur Wohnzimmer
-Box|box an|einschalten|ein
-Box|box aus|ausschalten
+box an|einschalten|ein
+box aus|ausschalten
 
