@@ -1,19 +1,41 @@
-📦 gpt-voice-fhem
+# 🗣️ GPT-Voice-FHEM
 
-A local voice control system for FHEM, based on Vosk speech recognition and Python. No cloud services involved – fully offline.
+**Local voice control for FHEM – offline, secure, and fast.**
 
-Features:
+This project turns a microphone into a smart voice controller for your smart home – completely cloud-free!  
+Wakeword detection is powered by Vosk, speech-to-text by faster-whisper, and processing via TinyLlama + Coqui TTS.
 
-    Wakeword detection ("niko")
+### 💡 Features
 
-    16 kHz audio recording via ALSA (e.g. PowerConf S3)
+- Wakeword detection ("niko") using Vosk
+- Local speech recording & transcription (**faster-whisper** for audio → text)
+- Processing via local GPT models (e.g., TinyLlama)
+- Device control via FHEM (HTTP API)
+- Voice feedback using Coqui TTS
+- Fully offline & local
 
-    Speech recognition with Vosk
+<hr style="margin:20px 0;">
 
-    Command filtering and FHEM execution
+<h2 style="color:#884ea0; font-size: 22px; margin: 20px 0;">🧠 GPT Voice Control</h2>
+<p>Local voice control with wakeword detection and GPT integration to control FHEM devices.</p>
 
-    Spoken responses (Coqui TTS / WAV playback)
+<h3 style="color:#117a65;">🔊 Details:</h3>
+<ul>
+  <li><strong>Wakeword:</strong> "niko"</li>
+  <li><strong>Transcription:</strong> faster-whisper (CUDA-accelerated)</li>
+  <li><strong>TTS:</strong> Coqui / local speech synthesis</li>
+  <li><strong>Hardware:</strong> PowerConf S3 speaker & RØDE Wireless GO II microphone, RTX 3060 (CUDA)</li>
+  <li><strong>Models:</strong> TinyLlama, Phi-2</li>
+</ul>
 
-    All services startable via systemd or manually
+<h3 style="color:#b9770e;">⚙️ Directories:</h3>
+<ul>
+  <li><code>/opt/script/</code> → Control scripts</li>
+  <li><code>/opt/sound/</code> → Voice responses</li>
+  <li><code>/opt/vosk/</code> → Speech recognition models</li>
+</ul>
 
-    Easily extendable with local GPT models (optional)
+<hr>
+<p style="font-size:small; color:#555;">Last updated: April 2025</p>
+
+👉 For full setup instructions, see [INSTALL.md](INSTALL.md)
