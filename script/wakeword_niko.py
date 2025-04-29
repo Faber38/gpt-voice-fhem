@@ -4,6 +4,7 @@ import queue
 import sys
 import sounddevice as sd
 import subprocess
+import re
 import json
 import os
 import wave
@@ -13,6 +14,7 @@ import samplerate
 import random
 import time
 import glob
+
 from vosk import Model, KaldiRecognizer
 from faster_whisper import WhisperModel
 from filter import clean_text
@@ -184,36 +186,69 @@ while True:
 
             LETZTER_SPRECHZEITPUNKT = time.time()
 
+            # ⏲️ Timer-Erkennung
+            match = re.match(r".*timer.*für\s+(\d+)\s+(sekunden|minuten|stunden)", filtered_text.lower())
+            if match:
+                zahl = match.group(1)
+                einheit = match.group(2)
+                print(f"⏲️ Starte Timer für {zahl} {einheit} ...")
+                
+                print("⏳ Warte 1.5 Sekunden, damit das Audio-Gerät frei wird ...")
+                time.sleep(1.5)  # ➡️ Verhindert Gerät-belegt-Fehler bei Timerstart
+                
+                try:
+                    subprocess.Popen([
+                        "/opt/venv/bin/python", "/opt/script/timer.py", zahl, einheit
+                    ], start_new_session=True)
+                
+                    # Optional Bestätigungston direkt abspielen
+                    confirm_files = glob.glob(os.path.join(CONFIRM_DIR, "*.wav"))
+                    if confirm_files:
+                        confirm_wav = random.choice(confirm_files)
+                        confirm_path = os.path.join(CONFIRM_DIR, confirm_wav)
+                        if output_device:
+                            subprocess.Popen(["aplay", "-D", output_device, confirm_path])
+                
+                except Exception as e:
+                    print(f"❌ Fehler beim Start von timer.py: {e}")
+                
+                continue
+                
+            
+ 
             if "temperatur" in filtered_text.lower():
                 print(f"🌡️ Temperaturabfrage erkannt: {filtered_text}")
                 try:
                     print("🚀 Starte gpt_temp.py ...")
-
-                    proc = subprocess.Popen(
-                        [
-                            "/opt/venv/bin/python",
-                            "/opt/script/gpt_temp.py",
-                            "--text",
-                            filtered_text
-                        ],
+                    result = subprocess.run(
+                        ["/opt/venv/bin/python", "/opt/script/gpt_temp.py", "--text", filtered_text],
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
-                        text=True
+                        text=True,
+                        timeout=20  # ❗ Timeout in Sekunden
                     )
-
-                    for line in proc.stdout:
+                    for line in result.stdout.splitlines():
                         print(f"[gpt_temp] {line.strip()}")
-
-                    for line in proc.stderr:
+                    for line in result.stderr.splitlines():
                         print(f"[gpt_temp ERROR] {line.strip()}")
+                
+                    print(f"✅ gpt_temp.py abgeschlossen (Exitcode {result.returncode})")
 
-                    proc.wait()
-                    print(f"✅ gpt_temp.py abgeschlossen (Exitcode {proc.returncode})")
-
+                except subprocess.TimeoutExpired:
+                    print("❌ gpt_temp.py hängt – Timeout erreicht!")
                 except Exception as e:
                     print(f"❌ Fehler beim Start von gpt_temp.py: {e}")
-
+                
+                # 🎤 Mikrofon sicher wieder aktivieren
+                if not stream.active:
+                    try:
+                        stream.start()
+                        print("🎤 Mikrofon wieder aktiviert nach Temperaturabfrage.")
+                    except Exception as e:
+                        print(f"⚠️ Fehler beim Reaktivieren des Mikrofons: {e}")
+                
                 continue
+                
 
             if "rede mit mir" in filtered_text.lower():
                 PLAUDER_MODUS = True

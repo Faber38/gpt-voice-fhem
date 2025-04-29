@@ -1,75 +1,72 @@
+#!/usr/bin/env python3
 import subprocess
 import time
 import sys
 
-# 📁 Pfad zur Sounddatei
-wav_file = "/opt/sound/hilfe/dein_teimer_ist_abgelaufen.wav"
+# 📁 Pfad zur abschließenden Sounddatei
+final_wav = "/opt/sound/hilfe/dein_teimer_ist_abgelaufen.wav"
 
-# 🔧 ALSA-Device aus der Konfigurationsdatei laden
+# 🔧 ALSA-Device aus Konfig laden
 with open("/opt/script/audio_device.conf", "r") as f:
     alsa_dev = f.read().strip()
 
-# 🔔 Timer-Logik (5 Sekunden als Beispiel)
+# 🧠 Hilfsfunktion für sicheres Abspielen (inkl. Retry bei "Gerät belegt")
+def safe_aplay(wav_path, device, retries=5, delay=0.4):
+    for attempt in range(retries):
+        try:
+            subprocess.run(["aplay", "-D", device, wav_path], check=True)
+            return
+        except subprocess.CalledProcessError as e:
+            print(f"⚠️ Versuch {attempt+1}/{retries} fehlgeschlagen: {e}")
+            time.sleep(delay)
+    print(f"❌ Konnte {wav_path} nicht abspielen – Gerät dauerhaft belegt.")
+
+# ✅ Eingabe prüfen
 if len(sys.argv) < 3:
     print("❌ Bitte gib die Timer-Dauer und die Zeiteinheit an.")
     sys.exit(1)
 
-# Die Zeit und Einheit vom Argument
+# ⏲️ Argumente: Dauer und Einheit
 timer_duration = int(sys.argv[1])
 time_unit = sys.argv[2].lower()
 
-# 📢 Bestätigungstext
-confirmation_text = f"Timer erstellt für {timer_duration} {time_unit}."
+# 🧠 Timeransage
+print(f"⏲️ Timer wird gesetzt für {timer_duration} {time_unit} ...")
 
-# 🎶 Timer starten
-if time_unit == "minuten":
-    # Minuten-WAV und dann die Sekunden-WAV abspielen
-    subprocess.run(["aplay", "-D", alsa_dev, "/opt/sound/timer/teimer_erstell_fuehr.wav"])  # Text: "Timer erstellt für X Minuten"
-    subprocess.run(["aplay", "-D", alsa_dev, f"/opt/sound/timer/{timer_duration}.wav"])  # z.B. "5.wav"
-    subprocess.run(["aplay", "-D", alsa_dev, "/opt/sound/timer/minuten.wav"])  # Minuten-Datei
-    subprocess.run(["aplay", "-D", alsa_dev, "/opt/sound/timer/ab_jetzt.wav"])
-elif time_unit == "sekunden":
-    # Sekunden-WAV und dann die Zahl als WAV abspielen
-    subprocess.run(["aplay", "-D", alsa_dev, "/opt/sound/timer/teimer_erstell_fuehr.wav"])  # Text: "Timer erstellt für X Sekunden"
-    subprocess.run(["aplay", "-D", alsa_dev, f"/opt/sound/timer/{timer_duration}.wav"])  # z.B. "5.wav"
-    subprocess.run(["aplay", "-D", alsa_dev, "/opt/sound/timer/sekunden.wav"])  # Sekunden-WAV
-    subprocess.run(["aplay", "-D", alsa_dev, "/opt/sound/timer/ab_jetzt.wav"])
+# 🔉 Sprachansage zum Start
+safe_aplay("/opt/sound/timer/teimer_erstell_fuehr.wav", alsa_dev)
+safe_aplay(f"/opt/sound/timer/{timer_duration}.wav", alsa_dev)
+
+if time_unit == "sekunden":
+    safe_aplay("/opt/sound/timer/sekunden.wav", alsa_dev)
+elif time_unit == "minuten":
+    safe_aplay("/opt/sound/timer/minuten.wav", alsa_dev)
 elif time_unit == "stunden":
-    # Stunden-WAV und dann die Zahl als WAV abspielen
-    subprocess.run(["aplay", "-D", alsa_dev, "/opt/sound/timer/teimer_erstell_fuehr.wav"])  # Text: "Timer erstellt für X Stunden"
-    subprocess.run(["aplay", "-D", alsa_dev, f"/opt/sound/timer/{timer_duration}.wav"])  # z.B. "1.wav"
-    subprocess.run(["aplay", "-D", alsa_dev, "/opt/sound/timer/stunden.wav"])  # Stunden-WAV
-    subprocess.run(["aplay", "-D", alsa_dev, "/opt/sound/timer/ab_jetzt.wav"])
+    safe_aplay("/opt/sound/timer/stunden.wav", alsa_dev)
 else:
-    print(f"❌ Unbekannte Zeiteinheit: {time_unit}. Bitte 'sekunden', 'minuten' oder 'stunden' verwenden.")
+    print(f"❌ Unbekannte Zeiteinheit: {time_unit}")
     sys.exit(1)
 
-# Timer läuft
-print(f"✅ Timer für {timer_duration} {time_unit} gesetzt.")
-# ⏳ Zeit in Sekunden berechnen:
-if time_unit == "minuten":
+safe_aplay("/opt/sound/timer/ab_jetzt.wav", alsa_dev)
+
+# 💤 Timer laufen lassen
+if time_unit == "sekunden":
+    sleep_time = timer_duration
+elif time_unit == "minuten":
     sleep_time = timer_duration * 60
 elif time_unit == "stunden":
     sleep_time = timer_duration * 3600
-elif time_unit == "sekunden":
-    sleep_time = timer_duration
 else:
-    print(f"❌ Unbekannte Zeiteinheit: {time_unit}. Bitte 'sekunden', 'minuten' oder 'stunden' verwenden.")
-    sys.exit(1)
+    sleep_time = 0
 
-# 💤 Timer schlafen lassen
-print(f"⏲️ Timer läuft für {sleep_time} Sekunden...")
+print(f"🕒 Warte {sleep_time} Sekunden ...")
 time.sleep(sleep_time)
 
-# 🗣️ Ansage der ursprünglichen Zeit
-try:
-    subprocess.run(["aplay", "-D", alsa_dev, f"/opt/sound/timer/{timer_duration}.wav"])
-    subprocess.run(["aplay", "-D", alsa_dev, f"/opt/sound/timer/{time_unit}.wav"])
-except Exception as e:
-    print(f"❌ Fehler beim Abspielen der Zeitansage: {e}")
-# Nach dem Timer-Ablauf:
-print("🔔 Timer abgelaufen!")
-subprocess.run(["aplay", "-D", alsa_dev, wav_file])  # "dein_timer_ist_abgelaufen.wav"
-time.sleep(1)  # Kurze Pause
-subprocess.run(["aplay", "-D", alsa_dev, wav_file])  # "dein_timer_ist_abgelaufen.wav"
+# 🔔 Timer abgelaufen – Ansage
+safe_aplay(f"/opt/sound/timer/{timer_duration}.wav", alsa_dev)
+safe_aplay(f"/opt/sound/timer/{time_unit}.wav", alsa_dev)
 
+print("🔔 Timer abgelaufen!")
+safe_aplay(final_wav, alsa_dev)
+time.sleep(1)
+safe_aplay(final_wav, alsa_dev)
