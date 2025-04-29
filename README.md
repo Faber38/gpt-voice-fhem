@@ -1,42 +1,125 @@
-# 🗣️ GPT-Voice-FHEM
 
-**Lokale Sprachsteuerung für FHEM – offline, sicher und schnell.**
+# 📢 Sprachsteuerung für FHEM – Lokal & Offline
 
-Dieses Projekt verwandelt ein Mikrofon in eine smarte Sprachsteuerung für dein Smart Home – ganz ohne Cloud!  
-Die Erkennung erfolgt über Vosk (lokale Spracherkennung) und die Verarbeitung über TinyLlama + Coqui TTS.
+Willkommen zu meinem **lokalen Sprachsystem** für die Haussteuerung mit **Wakeword-Erkennung, Sprachtranskription, GPT-Analyse und FHEM-Anbindung** – komplett **offline** und optimiert für **schnelle Reaktionen**!
 
-### 💡 Features
+---
 
-- Wakeword-Erkennung ("niko") mit Vosk
-- Sprachaufnahme & Transkription lokal (**faster-whisper** für Sound → Text)
-- Verarbeitung per lokalem GPT-Modell (z. B. TinyLlama)
-- Gerätesteuerung über FHEM (HTTP API)
-- Rückmeldung per Sprachausgabe (Coqui TTS)
-- Vollständig offline & lokal
+## 🔥 Features
 
-<hr style="margin:20px 0;">
+- **Wakeword-Erkennung:**  
+  - Echtzeit-Erkennung über Vosk (`alexa`)
+- **Sprachtranskription:**  
+  - Schnell & präzise mit Faster-Whisper (`small` Modell, GPU-optimiert)
+- **Sprachbefehlsverarbeitung:**  
+  - Temperaturabfragen
+  - Timer setzen
+  - Plaudermodus ("rede mit mir")
+  - Hausautomation (z.B. Licht, Rolläden) über FHEM
+- **Text-to-Speech (TTS):**  
+  - Klare deutsche Sprachausgabe mit Coqui TTS (Thorsten)
+- **Audio-Ausgabe:**  
+  - Zuverlässige Audiowiedergabe (mit Retry bei Gerätblockaden)
+- **Vollständig lokal:**  
+  - Keine Cloud-Dienste, keine Internetverbindung nötig
+- **GPU-Unterstützung:**  
+  - CUDA-Beschleunigung für Whisper und GPT
 
-<h2 style="color:#884ea0; font-size: 22px; margin: 20px 0;">🧠 GPT Sprachsteuerung</h2>
-<p>Lokale Sprachsteuerung über Wakeword & GPT-Anbindung zur Steuerung von FHEM.</p>
+---
 
-<h3 style="color:#117a65;">🔊 Details:</h3>
-<ul>
-  <li><strong>Wakeword:</strong> "niko"</li>
-  <li><strong>Transkription:</strong> faster-whisper (CUDA-beschleunigt)</li>
-  <li><strong>TTS:</strong> Coqui / lokale Sprachausgabe</li>
-  <li><strong>Hardware:</strong> PowerConf S3 Lautsprecher & RØDE Wireless GO II Mikrofon, RTX 3060 (CUDA)</li>
-  <li><strong>Modelle:</strong> TinyLlama, Phi-2</li>
-</ul>
+## ⚙️ Architektur
 
-<h3 style="color:#b9770e;">⚙️ Verzeichnisse:</h3>
-<ul>
-  <li><code>/opt/script/</code> → Steuerungs-Skripte</li>
-  <li><code>/opt/sound/</code> → Sprachantworten</li>
-  <li><code>/opt/vosk/</code> → Sprachmodelle</li>
-</ul>
+```text
+Wakeword → Sprachaufnahme → Transkription (Whisper) → 
+Textfilter → Befehlserkennung → 
+Aktion (z.B. Timer, Temperatur, FHEM) → 
+Antwort per TTS
+```
 
-<hr>
-<p style="font-size:small; color:#555;">Letzte Aktualisierung: April 2025</p>
+---
 
-👉 Für die vollständige Einrichtung siehe [INSTALL.md](INSTALL.md)
+## 🛠️ Komponenten
 
+| Komponente          | Beschreibung |
+|:--------------------|:--------------|
+| `wakeword_niko.py`   | Hauptprozess: Lauschen, Aufnahme, Befehlsauswertung |
+| `gpt_temp.py`        | Temperaturabfrage und freundliche Antwort über GPT |
+| `timer.py`           | Timer setzen und ablaufen lassen |
+| `gpt_to_fhem.py`     | Sprachsteuerung an FHEM senden |
+| `filter.py`          | Texte filtern und vereinfachen |
+| `/opt/sound/`        | WAV-Dateien für Antworten, Timer, Fehler |
+
+---
+
+## 🧰 Abhängigkeiten
+
+- **Python 3.11**
+- `vosk`, `sounddevice`, `samplerate`
+- `numpy`, `librosa`, `faster-whisper`
+- `TTS (coqui-ai)`, `llama-cpp-python`
+- optional: CUDA für GPU-Beschleunigung
+
+Installation über venv (empfohlen):
+
+```bash
+python3 -m venv /opt/venv
+source /opt/venv/bin/activate
+pip install -r requirements.txt
+```
+
+---
+
+## 🏁 Starten
+
+1. Wakeword-System starten:
+
+```bash
+/opt/script/start_voice_system.sh
+```
+
+(Dient als Service: `voice_system.service`)
+
+2. Sprachbefehl aussprechen → System reagiert automatisch.
+
+---
+
+## 📦 Verzeichnisstruktur
+
+```text
+/opt/
+ ├── script/
+ │    ├── wakeword_niko.py
+ │    ├── gpt_temp.py
+ │    ├── timer.py
+ │    ├── gpt_to_fhem.py
+ │    └── filter.py
+ ├── sound/
+ │    ├── responses/
+ │    ├── confirm/
+ │    ├── error/
+ │    ├── timer/
+ ├── venv/
+ ├── vosk/
+ ├── mistral-7b-instruct-v0.1.Q4_K_M.gguf
+```
+
+---
+
+## 🧹 To-Do
+
+- [x] Wakeword-Erkennung stabilisieren
+- [x] Temperatur & Timer-Logik sauber trennen
+- [ ] Mehrere parallele Timer ermöglichen
+- [ ] Web-Interface für Timer-Status
+- [ ] Bessere Fehlerbehandlung bei Audio
+
+---
+
+## 🧑‍💻 Autor
+
+Projekt von **Faber38**  
+→ für privates Haussteuerungssystem auf **Debian VM (Proxmox)** mit **lokalem Sprachmodell**.
+
+---
+
+# 🚀 Viel Spaß beim Nachbauen und Weiterentwickeln!
