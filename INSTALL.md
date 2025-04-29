@@ -1,101 +1,153 @@
-# 🛠️ GPT-Voice-FHEM – Installationsanleitung
 
-## ✅ Voraussetzungen
+# 🛠️ INSTALLATION – Sprachsteuerung für FHEM
 
-- Debian-basiertes Linux-System
-- Python 3.11
-- Git
-- Soundkarte mit Mikrofon (z. B. PowerConf S3)
-- FHEM mit HTTP-Auth (Username & Passwort bekannt)
+Diese Anleitung beschreibt die vollständige Einrichtung des lokalen Sprachsystems auf einem Linux-System (z. B. Debian VM unter Proxmox).
 
 ---
 
-## 📁 Verzeichnisstruktur
+## 🔧 Voraussetzungen
 
-Das Projekt liegt unter `/opt/`:
-
-/opt/ ├── script/ # Alle Python-Skripte und Konfigs ├── sound/ # Audio-Antworten (responses, confirm, error) ├── vosk/ # Vosk-Modelle ├── phi-2.Q4_K_M.gguf # Optional: GPT-Modell ├── tinyllama... # GPT-Modell für Sprachverarbeitung └── venv/ # Python-Virtualenv
-
+- Debian/Linux mit Python 3.11
+- Soundgerät (z. B. PowerConf S3, als ALSA-Device eingebunden)
+- NVIDIA-GPU für CUDA (empfohlen)
+- FHEM-Server (z. B. unter <FHEM-IP>:8083)
 
 ---
 
-## 🔧 Installation
-
-### 1. Python Virtualenv
+## 📦 Python-Umgebung einrichten
 
 ```bash
-sudo apt install python3.11-venv
-cd /opt
-python3.11 -m venv venv
-source venv/bin/activate
+sudo apt install python3.11 python3.11-venv python3-pip libportaudio2 ffmpeg
+python3.11 -m venv /opt/venv
+source /opt/venv/bin/activate
 pip install -r requirements.txt
+```
 
-Benötigte Pakete:
+**Beispiel für `requirements.txt`:**
 
-pip install sounddevice samplerate vosk requests numpy
+```
+vosk
+sounddevice
+samplerate
+numpy
+librosa
+faster-whisper
+TTS
+llama-cpp-python
+requests
+```
 
-2. Vosk Modell installieren
+---
 
+## 🎙️ Audio einrichten
+
+### 📁 Konfigurationsdateien anlegen:
+
+```bash
+echo "plughw:0,0" > /opt/script/audio_device.conf
+echo "4" > /opt/script/audio_input.conf
+echo "1.0" > /opt/script/mic_gain.conf
+```
+
+Passe die Werte je nach deinem Setup an.
+
+---
+
+## 📁 Verzeichnisstruktur vorbereiten
+
+```bash
+mkdir -p /opt/script
+mkdir -p /opt/sound/{responses,confirm,error,timer}
 mkdir -p /opt/vosk
-cd /opt/vosk
-wget https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip
-unzip vosk-model-small-de-0.15.zip
-mv vosk-model-small-de-0.15 vosk-de
+```
 
-3. Konfiguration
-🔊 Audio
+---
 
-    /opt/script/audio_index.conf → enthält z. B. 4 (Index für sounddevice)
+## 📥 Modelle herunterladen
 
-    /opt/script/audio_device.conf → enthält z. B. hw:CARD=S3,DEV=0
+### 🧠 Vosk (Wakeword + Transkription)
+- Modell: `vosk-model-small-de-0.15`
+- https://alphacephei.com/vosk/models
 
-💡 Geräte
+### 🗣️ Coqui TTS:
+```bash
+# Automatisch beim ersten Aufruf heruntergeladen:
+python3 -m TTS.api
+```
 
-    /opt/script/device.txt
+### 🤖 GPT (z. B. TinyLlama oder Mistral):
+```bash
+# Modell platzieren unter:
+cp mistral-7b-instruct-v0.1.Q4_K_M.gguf /opt/
+```
 
-Küche Licht an|ein|einschalten
-Küche Licht aus|ausschalten
-Wohnzimmer Licht an|ein|einschalten
-...
+---
 
-▶️ Starten
-Manuell testen
+## 🧠 Sprachlogik starten
 
-/opt/venv/bin/python /opt/script/wakeword_niko.py
+### 🖥️ Als Service einrichten:
 
-Systemd-Service
-
-# /etc/systemd/system/voice-fhem.service
-
+```ini
+# /etc/systemd/system/voice_system.service
 [Unit]
-Description=Voice-FHEM Wakeword System
-After=network.target
+Description=Starte gesamtes Sprachsystem (Find Audio + Wakeword)
+After=network.target sound.target
 
 [Service]
-ExecStart=/opt/venv/bin/python /opt/script/wakeword_niko.py
-Restart=always
+Type=simple
+ExecStart=/opt/script/start_voice_system.sh
+WorkingDirectory=/opt/script
+Restart=on-failure
 User=root
 
 [Install]
 WantedBy=multi-user.target
+```
 
-systemctl daemon-reexec
-systemctl enable --now voice-fhem.service
+Aktivieren:
 
-🧪 Debug / Tests
+```bash
+sudo systemctl daemon-reexec
+sudo systemctl enable voice_system
+sudo systemctl start voice_system
+```
 
-/opt/venv/bin/python /opt/script/mic_test.py
-/opt/venv/bin/python /opt/script/read_command.py
-/opt/venv/bin/python /opt/script/gpt_to_fhem.py "küche licht an"
+---
 
-ℹ️ Hinweise
+## ✅ Test
 
-    Die Antwort-WAVs liegen unter /opt/sound/
+```bash
+journalctl -u voice_system.service -f
+```
 
-    Alle Audio-Dateien sind 48 kHz, stereo
+Dann z. B. sagen: **„Alexa, wie ist die Temperatur im Wohnzimmer?“**
 
-    FHEM-Befehle werden als set GptVoiceCommand gesendet
+---
 
-    Die Bestätigung (z. B. „okay erledigt“) erfolgt aus /opt/sound/confirm
+## 🔒 Sicherheit
 
-Viel Spaß mit deiner lokalen Sprachsteuerung!
+- Passwörter in `/opt/script/fhem_auth.conf` speichern:
+
+```ini
+[FHEM]
+url = http://<FHEM-IP>:8083/fhem
+user = <BENUTZER>
+pass = dein_passwort
+```
+
+---
+
+## 📄 Dateien
+
+- `wakeword_niko.py`: Hauptsystem
+- `gpt_temp.py`: Temperatur
+- `timer.py`: Timer
+- `gpt_to_fhem.py`: FHEM-Befehle
+- `filter.py`: Textvereinfachung
+
+---
+
+## 📢 Letzter Hinweis
+
+Dieses System läuft **vollständig lokal** – ideal für Datenschutz, Geschwindigkeit und Kontrolle!
+
