@@ -8,6 +8,7 @@ __pycache__/
 *.tmp
 *.swp
 pytorch/
+/llama.cpp
 /opt/script/fhem_auth.conf
 script/fhem_auth.conf
 cudnn-local-repo-debian12-9.8.0_1.0-1_amd64.deb

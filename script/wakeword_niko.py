@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import queue
 import sys
 import sounddevice as sd
@@ -11,8 +12,9 @@ import numpy as np
 import samplerate
 import random
 import time
+import glob
 from vosk import Model, KaldiRecognizer
-from faster_whisper import WhisperModel  # 🆕
+from faster_whisper import WhisperModel
 from filter import clean_text
 
 def get_output_device():
@@ -46,7 +48,6 @@ def get_wav_duration(wav_path):
         duration = frames / float(rate)
         return duration
 
-# 🧠 Faster-Whisper Modell laden
 print("🚀 Lade Faster-Whisper Modell …")
 fw_model = WhisperModel("small", device="cuda", compute_type="float16")
 
@@ -95,7 +96,7 @@ stream = sd.InputStream(
     callback=callback,
 )
 stream.start()
-print(f"🎙 Lausche auf Wakeword … (Device-Index: {input_device})")
+print(f"🎹 Lausche auf Wakeword … (Device-Index: {input_device})")
 
 while True:
     if PLAUDER_MODUS and time.time() - LETZTER_SPRECHZEITPUNKT > PLAUDER_TIMEOUT:
@@ -115,7 +116,7 @@ while True:
             stream.stop()
             print("🔇 Mikrofon gestoppt …")
 
-            response_files = [f for f in os.listdir(RESPONSES_DIR) if f.endswith(".wav")]
+            response_files = glob.glob(os.path.join(RESPONSES_DIR, "*.wav"))
             if response_files:
                 chosen = random.choice(response_files)
                 wav_path = os.path.join(RESPONSES_DIR, chosen)
@@ -127,7 +128,7 @@ while True:
                     time.sleep(duration + 0.5)
 
             stream.start()
-            print("🎙 Mikrofon wieder aktiv – Aufnahme beginnt …")
+            print("🎹 Mikrofon wieder aktiv – Aufnahme beginnt …")
 
             LETZTER_SPRECHZEITPUNKT = time.time()
             recorded_chunks = []
@@ -143,10 +144,10 @@ while True:
             except queue.Empty:
                 pass
 
-            print("🛑 Aufnahme beendet.")
+            print("🔕 Aufnahme beendet.")
             audio_data = b"".join(recorded_chunks)
 
-            print(f"🎚 Verstärke Aufnahme um Faktor {gain_factor} …")
+            print(f"🌺 Verstärke Aufnahme um Faktor {gain_factor} …")
             audio_np = np.frombuffer(audio_data, dtype=np.int16)
             audio_np = np.clip(audio_np * gain_factor, -32768, 32767).astype(np.int16)
             amplified_audio_data = audio_np.tobytes()
@@ -159,7 +160,7 @@ while True:
 
             print(f"💾 Gespeichert unter: {OUTPUT_FILE}")
 
-            print("🧠 Verarbeite gesprochene Eingabe mit Faster-Whisper (Deutsch) …")
+            print("🧐 Verarbeite gesprochene Eingabe mit Faster-Whisper (Deutsch) …")
             try:
                 segments, info = fw_model.transcribe(OUTPUT_FILE, beam_size=5, language="de")
 
@@ -181,54 +182,46 @@ while True:
             filtered_text = clean_text(text)
             print(f"🧹 Gefilterter Text: {filtered_text}")
 
-            if "timer" in filtered_text:
-                print(f"🔔 Timer-Trigger erkannt in: {filtered_text}")
-            else:
-                print(f"❌ Kein Timer-Trigger in: {filtered_text}")
-
             LETZTER_SPRECHZEITPUNKT = time.time()
 
-            if "timer" in filtered_text:
+            if "temperatur" in filtered_text.lower():
+                print(f"🌡️ Temperaturabfrage erkannt: {filtered_text}")
                 try:
-                    parts = []
-                    if "für" in filtered_text:
-                        parts = filtered_text.lower().split("für")[1].strip().split(" ")
-                    else:
-                        parts = filtered_text.lower().replace("timer", "").strip().split(" ")
+                    print("🚀 Starte gpt_temp.py ...")
 
-                    print(f"🔍 Timer Teile: {parts}")
+                    proc = subprocess.Popen(
+                        [
+                            "/opt/venv/bin/python",
+                            "/opt/script/gpt_temp.py",
+                            "--text",
+                            filtered_text
+                        ],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
 
-                    timer_duration = int(parts[0])
-                    time_unit = parts[1].strip().rstrip(".").lower()
+                    for line in proc.stdout:
+                        print(f"[gpt_temp] {line.strip()}")
 
-                    erlaubte_einheiten = ["sekunden", "minuten", "stunden"]
-                    if time_unit not in erlaubte_einheiten:
-                        print(f"❌ Unbekannte Zeiteinheit: {time_unit}.")
-                    else:
-                        print(f"🔔 Timer erkannt: {timer_duration} {time_unit}")
-                        subprocess.Popen(
-                            [
-                                "/opt/venv/bin/python",
-                                "/opt/script/timer.py",
-                                str(timer_duration),
-                                time_unit,
-                            ]
-                        )
-                    continue
+                    for line in proc.stderr:
+                        print(f"[gpt_temp ERROR] {line.strip()}")
+
+                    proc.wait()
+                    print(f"✅ gpt_temp.py abgeschlossen (Exitcode {proc.returncode})")
 
                 except Exception as e:
-                    print(f"❌ Fehler bei der Timer-Erkennung: {e}")
-                    continue
+                    print(f"❌ Fehler beim Start von gpt_temp.py: {e}")
+
+                continue
 
             if "rede mit mir" in filtered_text.lower():
                 PLAUDER_MODUS = True
-                subprocess.run(
-                    [
-                        "/opt/venv/bin/python",
-                        "/opt/script/gpt_chat.py",
-                        filtered_text,
-                    ]
-                )
+                subprocess.run([
+                    "/opt/venv/bin/python",
+                    "/opt/script/gpt_chat.py",
+                    filtered_text,
+                ])
                 continue
 
             print(f"🤖 Sende an GPT … Text: '{filtered_text}'")
@@ -245,7 +238,7 @@ while True:
                 print(f"❌ Fehler beim Start von gpt_to_fhem.py: {e}")
 
             if os.path.exists("/tmp/fhem_confirmed"):
-                confirm_files = [f for f in os.listdir(CONFIRM_DIR) if f.endswith(".wav")]
+                confirm_files = glob.glob(os.path.join(CONFIRM_DIR, "*.wav"))
                 if confirm_files:
                     confirm_wav = random.choice(confirm_files)
                     confirm_path = os.path.join(CONFIRM_DIR, confirm_wav)
@@ -254,7 +247,7 @@ while True:
                         subprocess.Popen(["aplay", "-D", output_device, confirm_path])
                 os.remove("/tmp/fhem_confirmed")
             else:
-                error_files = [f for f in os.listdir(ERROR_DIR) if f.endswith(".wav")]
+                error_files = glob.glob(os.path.join(ERROR_DIR, "*.wav"))
                 if error_files:
                     error_wav = random.choice(error_files)
                     error_path = os.path.join(ERROR_DIR, error_wav)
