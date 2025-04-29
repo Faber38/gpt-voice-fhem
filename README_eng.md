@@ -1,41 +1,125 @@
-# 🗣️ GPT-Voice-FHEM
 
-**Local voice control for FHEM – offline, secure, and fast.**
+# 📢 Voice Control for FHEM – Local & Offline
 
-This project turns a microphone into a smart voice controller for your smart home – completely cloud-free!  
-Wakeword detection is powered by Vosk, speech-to-text by faster-whisper, and processing via TinyLlama + Coqui TTS.
+Welcome to my **local voice control system** for smart home automation with **wakeword detection, speech transcription, GPT analysis, and FHEM control** – fully **offline** and optimized for **fast responses**!
 
-### 💡 Features
+---
 
-- Wakeword detection ("niko") using Vosk
-- Local speech recording & transcription (**faster-whisper** for audio → text)
-- Processing via local GPT models (e.g., TinyLlama)
-- Device control via FHEM (HTTP API)
-- Voice feedback using Coqui TTS
-- Fully offline & local
+## 🔥 Features
 
-<hr style="margin:20px 0;">
+- **Wakeword Detection:**  
+  - Real-time detection using Vosk (`alexa`)
+- **Speech Transcription:**  
+  - Fast & accurate with Faster-Whisper (`small` model, GPU-optimized)
+- **Command Processing:**  
+  - Temperature queries
+  - Set timers
+  - Chat mode ("talk to me")
+  - Home automation (e.g., lights, shutters) via FHEM
+- **Text-to-Speech (TTS):**  
+  - Clear German speech output with Coqui TTS (Thorsten voice)
+- **Audio Playback:**  
+  - Reliable audio output with retry mechanism if device busy
+- **Fully Local:**  
+  - No cloud services required, 100% offline
+- **GPU Support:**  
+  - CUDA acceleration for Whisper and GPT
 
-<h2 style="color:#884ea0; font-size: 22px; margin: 20px 0;">🧠 GPT Voice Control</h2>
-<p>Local voice control with wakeword detection and GPT integration to control FHEM devices.</p>
+---
 
-<h3 style="color:#117a65;">🔊 Details:</h3>
-<ul>
-  <li><strong>Wakeword:</strong> "niko"</li>
-  <li><strong>Transcription:</strong> faster-whisper (CUDA-accelerated)</li>
-  <li><strong>TTS:</strong> Coqui / local speech synthesis</li>
-  <li><strong>Hardware:</strong> PowerConf S3 speaker & RØDE Wireless GO II microphone, RTX 3060 (CUDA)</li>
-  <li><strong>Models:</strong> TinyLlama, Phi-2</li>
-</ul>
+## ⚙️ Architecture
 
-<h3 style="color:#b9770e;">⚙️ Directories:</h3>
-<ul>
-  <li><code>/opt/script/</code> → Control scripts</li>
-  <li><code>/opt/sound/</code> → Voice responses</li>
-  <li><code>/opt/vosk/</code> → Speech recognition models</li>
-</ul>
+```text
+Wakeword → Record Audio → Transcribe (Whisper) → 
+Text Filter → Command Detection → 
+Action (e.g., Timer, Temperature, FHEM) → 
+Response via TTS
+```
 
-<hr>
-<p style="font-size:small; color:#555;">Last updated: April 2025</p>
+---
 
-👉 For full setup instructions, see [INSTALL.md](INSTALL.md)
+## 🛠️ Components
+
+| Component            | Description |
+|:---------------------|:-------------|
+| `wakeword_niko.py`    | Main process: listening, recording, command evaluation |
+| `gpt_temp.py`         | Temperature query and GPT-based response |
+| `timer.py`            | Set and handle timers |
+| `gpt_to_fhem.py`      | Send commands to FHEM |
+| `filter.py`           | Filter and simplify recognized text |
+| `/opt/sound/`         | WAV files for responses, timers, errors |
+
+---
+
+## 🧰 Requirements
+
+- **Python 3.11**
+- `vosk`, `sounddevice`, `samplerate`
+- `numpy`, `librosa`, `faster-whisper`
+- `TTS (coqui-ai)`, `llama-cpp-python`
+- optional: CUDA for GPU acceleration
+
+Recommended setup:
+
+```bash
+python3 -m venv /opt/venv
+source /opt/venv/bin/activate
+pip install -r requirements.txt
+```
+
+---
+
+## 🏁 Start
+
+1. Start the Wakeword system:
+
+```bash
+/opt/script/start_voice_system.sh
+```
+
+(Service `voice_system.service`)
+
+2. Speak a command → The system will respond.
+
+---
+
+## 📦 Directory Structure
+
+```text
+/opt/
+ ├── script/
+ │    ├── wakeword_niko.py
+ │    ├── gpt_temp.py
+ │    ├── timer.py
+ │    ├── gpt_to_fhem.py
+ │    └── filter.py
+ ├── sound/
+ │    ├── responses/
+ │    ├── confirm/
+ │    ├── error/
+ │    ├── timer/
+ ├── venv/
+ ├── vosk/
+ ├── mistral-7b-instruct-v0.1.Q4_K_M.gguf
+```
+
+---
+
+## 🧹 To-Do
+
+- [x] Stabilize Wakeword detection
+- [x] Separate temperature & timer logic cleanly
+- [ ] Support multiple timers in parallel
+- [ ] Add web interface for timer status
+- [ ] Improve audio error handling
+
+---
+
+## 🧑‍💻 Author
+
+Project by **Faber38**  
+→ Private smart home system running **Debian VM (Proxmox)** with **local language models**.
+
+---
+
+# 🚀 Have fun building and customizing your own system!

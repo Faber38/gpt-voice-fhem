@@ -1,92 +1,153 @@
-🛠️ INSTALLATION (EN)
-Requirements
 
-    Linux (tested on Debian/Proxmox)
+# 🛠️ INSTALLATION – Voice Control System for FHEM
 
-    Python 3.11+ (recommend using venv)
+This guide describes the complete setup for the local voice control system on a Linux machine (e.g., Debian VM on Proxmox).
 
-    sounddevice, vosk, samplerate, numpy, requests
+---
 
-    Vosk German model (vosk-model-small-de-0.15)
+## 🔧 Requirements
 
-    ALSA-compatible USB microphone (e.g. Anker PowerConf S3)
+- Debian/Linux with Python 3.11
+- Audio device (e.g., PowerConf S3 connected via ALSA)
+- NVIDIA GPU with CUDA support (recommended)
+- FHEM server (e.g., at <FHEM-IP>:8083)
 
-    Local FHEM instance with dummy GptVoiceCommand
+---
 
-🔧 Step-by-step Setup
-1. Clone the repository
+## 📦 Setup Python Environment
 
-git clone https://github.com/Faber38/gpt-voice-fhem.git
-cd gpt-voice-fhem
-
-2. Create virtual environment
-
-python3 -m venv /opt/venv
+```bash
+sudo apt install python3.11 python3.11-venv python3-pip libportaudio2 ffmpeg
+python3.11 -m venv /opt/venv
 source /opt/venv/bin/activate
 pip install -r requirements.txt
+```
 
-3. Prepare directories
+Example `requirements.txt`:
 
-mkdir -p /opt/sound/responses /opt/sound/confirm /opt/sound/error
+```
+vosk
+sounddevice
+samplerate
+numpy
+librosa
+faster-whisper
+TTS
+llama-cpp-python
+requests
+```
+
+---
+
+## 🎙️ Configure Audio
+
+### 📁 Create configuration files:
+
+```bash
+echo "plughw:0,0" > /opt/script/audio_device.conf
+echo "4" > /opt/script/audio_input.conf
+echo "1.0" > /opt/script/mic_gain.conf
+```
+
+Adjust the values based on your setup.
+
+---
+
+## 📁 Prepare Directory Structure
+
+```bash
+mkdir -p /opt/script
+mkdir -p /opt/sound/{responses,confirm,error,timer}
 mkdir -p /opt/vosk
+```
 
-4. Add sample files (optional)
+---
 
-Place example WAVs (e.g. ich_höre.wav, klar,mach_ich.wav) in the corresponding folders.
-5. Vosk model
+## 📥 Download Models
 
-Download and unzip the Vosk model:
+### 🧠 Vosk (Wakeword + Transcription)
+- Model: `vosk-model-small-de-0.15`
+- https://alphacephei.com/vosk/models
 
-wget https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip -P /opt/vosk
-unzip /opt/vosk/vosk-model-small-de-0.15.zip -d /opt/vosk/
+### 🗣️ Coqui TTS
+```bash
+# Auto-downloads on first run:
+python3 -m TTS.api
+```
 
-6. Audio device configuration
+### 🤖 GPT Model (e.g., TinyLlama or Mistral)
+```bash
+# Place model file here:
+cp mistral-7b-instruct-v0.1.Q4_K_M.gguf /opt/
+```
 
-Detect the device index:
+---
 
-python /opt/script/find_audio_index.py
+## 🧠 Start Speech System
 
-Save it in:
+### 🖥️ As a Service:
 
-/opt/script/audio_index.conf
-
-Optional: configure aplay device in /opt/script/audio_device.conf, e.g.:
-
-hw:CARD=S3,DEV=0
-
-7. FHEM Configuration
-
-Add gpt.conf to your FHEM fhem.cfg. It contains the logic for executing commands via GptVoiceCommand.
-
-You must also create a file /opt/script/fhem_auth.conf:
-
-[FHEM]
-url = http://192.168.x.x:8083
-user = holger
-pass = deinpasswort
-
-Make sure the file has proper permissions (e.g. chmod 600).
-▶️ Start manually
-
-/opt/venv/bin/python /opt/script/wakeword_niko.py
-
-🚀 Autostart (systemd)
-
-Create a systemd unit (e.g. /etc/systemd/system/gpt-voice.service):
-
+```ini
+# /etc/systemd/system/voice_system.service
 [Unit]
-Description=GPT Voice Wakeword
-After=network.target
+Description=Start voice control system (Find Audio + Wakeword)
+After=network.target sound.target
 
 [Service]
-ExecStart=/opt/venv/bin/python /opt/script/wakeword_niko.py
-WorkingDirectory=/opt/
-Restart=always
+Type=simple
+ExecStart=/opt/script/start_voice_system.sh
+WorkingDirectory=/opt/script
+Restart=on-failure
 User=root
 
 [Install]
 WantedBy=multi-user.target
+```
 
-Enable it:
+Enable the service:
 
-systemctl enable --now gpt-voice.service
+```bash
+sudo systemctl daemon-reexec
+sudo systemctl enable voice_system
+sudo systemctl start voice_system
+```
+
+---
+
+## ✅ Testing
+
+```bash
+journalctl -u voice_system.service -f
+```
+
+Then speak: **"Alexa, what's the temperature in the living room?"**
+
+---
+
+## 🔒 Security
+
+- Store your FHEM login data in `/opt/script/fhem_auth.conf`:
+
+```ini
+[FHEM]
+url = http://<FHEM-IP>:8083/fhem
+user = <USER>
+pass = <PASSWORD>
+```
+
+---
+
+## 📄 Files Overview
+
+- `wakeword_niko.py`: Main system
+- `gpt_temp.py`: Temperature queries
+- `timer.py`: Timer functionality
+- `gpt_to_fhem.py`: Send commands to FHEM
+- `filter.py`: Simplify recognized text
+
+---
+
+## 📢 Final Note
+
+This system runs **completely offline** – perfect for privacy, speed, and full control!
+
