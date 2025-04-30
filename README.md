@@ -45,6 +45,7 @@ Antwort per TTS
 | `wakeword_niko.py`   | Hauptprozess: Lauschen, Aufnahme, Befehlsauswertung |
 | `gpt_temp.py`        | Temperaturabfrage und freundliche Antwort über GPT |
 | `timer.py`           | Timer setzen und ablaufen lassen |
+| `kalendar.py`        | *ics Datei abfragen! |
 | `gpt_to_fhem.py`     | Sprachsteuerung an FHEM senden |
 | `filter.py`          | Texte filtern und vereinfachen |
 | `/opt/sound/`        | WAV-Dateien für Antworten, Timer, Fehler |
