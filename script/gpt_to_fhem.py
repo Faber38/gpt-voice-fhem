@@ -23,7 +23,7 @@ if len(sys.argv) < 2:
 
 # 🔠 Text direkt weiterverarbeiten – ohne erneutes Filtern
 user_input = sys.argv[1].lower().strip().rstrip(".!?")
-print(f"📥 Eingabe: {user_input}")
+print(f"📅 Eingabe: {user_input}")
 
 filtered = user_input  # NICHT erneut filtern!
 print(f"🚫 Kein erneutes Filtern → Verwende: {filtered}")
@@ -54,7 +54,15 @@ if "hilfe" in filtered:
         print(f"▶️ Spiele Hilfe-Datei: {help_file_path}")
         with open("/opt/script/audio_device.conf", "r") as f:
             alsa_dev = f.read().strip()
-        subprocess.Popen(["aplay", "-D", alsa_dev, help_file_path])
+
+        # 📰 Mikrofon pausieren
+        open("/tmp/mic_paused", "w").close()
+
+        subprocess.run(["aplay", "-D", alsa_dev, help_file_path])
+
+        # 🎤 Mikrofon wieder aktivieren
+        if os.path.exists("/tmp/mic_paused"):
+            os.remove("/tmp/mic_paused")
     else:
         print(f"❌ Hilfe-Datei nicht gefunden: {help_file_path}")
     sys.exit(0)

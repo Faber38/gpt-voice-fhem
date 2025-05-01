@@ -74,8 +74,11 @@ for raum in RAUM_DEVICE_MAP.keys():
         break
 
 # ▶️ Thinking-Sound
+mic_pause_path = "/tmp/mic_paused"
+
 def play_thinking_sound_async():
     try:
+        open(mic_pause_path, "w").close()
         thinking_files = glob.glob("/opt/sound/temperatur/*.wav")
         if not thinking_files:
             print("⚠️ Keine Thinking-Sounds gefunden.")
@@ -87,6 +90,9 @@ def play_thinking_sound_async():
         print(f"🔊 Thinking-Sound abgespielt: {sound_path}")
     except Exception as e:
         print(f"⚠️ Fehler beim Thinking-Sound: {e}")
+    finally:
+        if os.path.exists(mic_pause_path):
+            os.remove(mic_pause_path)
 
 if not raum_erkannt:
     print("❌ Kein bekannter Raum in der Abfrage erkannt.")
@@ -179,6 +185,7 @@ gpt_antwort = fix_temperature_numbers(gpt_antwort)
 print(f"🧐 GPT-Antwort (nach Korrektur): {gpt_antwort}")
 
 # 🔊 Coqui TTS ausgeben
+open(mic_pause_path, "w").close()
 tts = TTS("tts_models/de/thorsten/tacotron2-DCA", progress_bar=False, gpu=True)
 print(f"🔊 Erzeuge Audio aus GPT-Antwort: {gpt_antwort}")
 wav = tts.tts(gpt_antwort)
@@ -196,4 +203,6 @@ wav_resampled = librosa.resample(wav_array, orig_sr=TTS_SAMPLERATE, target_sr=TA
 
 sd.play(wav_resampled, samplerate=TARGET_SAMPLERATE, device=AUDIO_DEVICE_INDEX)
 sd.wait()
+if os.path.exists(mic_pause_path):
+    os.remove(mic_pause_path)
 print("✅ Wiedergabe abgeschlossen.")

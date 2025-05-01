@@ -192,29 +192,38 @@ while True:
                 zahl = match.group(1)
                 einheit = match.group(2)
                 print(f"⏲️ Starte Timer für {zahl} {einheit} ...")
-                
-                print("⏳ Warte 1.5 Sekunden, damit das Audio-Gerät frei wird ...")
-                time.sleep(1.5)  # ➡️ Verhindert Gerät-belegt-Fehler bei Timerstart
-                
+                time.sleep(1.5)
                 try:
                     subprocess.Popen([
                         "/opt/venv/bin/python", "/opt/script/timer.py", zahl, einheit
                     ], start_new_session=True)
-                
-                    # Optional Bestätigungston direkt abspielen
                     confirm_files = glob.glob(os.path.join(CONFIRM_DIR, "*.wav"))
                     if confirm_files:
                         confirm_wav = random.choice(confirm_files)
                         confirm_path = os.path.join(CONFIRM_DIR, confirm_wav)
                         if output_device:
                             subprocess.Popen(["aplay", "-D", output_device, confirm_path])
-                
                 except Exception as e:
                     print(f"❌ Fehler beim Start von timer.py: {e}")
-                
                 continue
                 
-            
+            # 📆 Kalender-Erkennung
+            if "kalender" in filtered_text.lower():
+               print("📆 Kalenderbefehl erkannt")
+                
+               if "morgen" in filtered_text.lower():
+                  print("➡️ Zeige Kalender: morgen")
+                  os.system("/opt/venv/bin/python3 /opt/script/kalendar.py morgen")
+               elif "heute" in filtered_text.lower():
+                  print("➡️ Zeige Kalender: heute")
+                  os.system("/opt/venv/bin/python3 /opt/script/kalendar.py heute")
+               elif "woche" in filtered_text.lower() or "diese woche" in filtered_text.lower():
+                  print("➡️ Zeige Kalender: woche")
+                  os.system("/opt/venv/bin/python3 /opt/script/kalendar.py woche")
+               else:
+                  print("➡️ Standardausgabe: woche")
+                  os.system("/opt/venv/bin/python3 /opt/script/kalendar.py woche")
+               continue      
  
             if "temperatur" in filtered_text.lower():
                 print(f"🌡️ Temperaturabfrage erkannt: {filtered_text}")

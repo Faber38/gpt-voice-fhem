@@ -107,6 +107,9 @@ while True:
 
     data = q.get()
 
+    if os.path.exists("/tmp/mic_paused"):
+        continue
+
     if recognizer.AcceptWaveform(data):
         result = json.loads(recognizer.Result())
         erkannter_text = result.get("text", "")
@@ -160,17 +163,12 @@ while True:
                 wf.setframerate(VOSK_SAMPLE_RATE)
                 wf.writeframes(amplified_audio_data)
 
-            print(f"💾 Gespeichert unter: {OUTPUT_FILE}")
+            print(f"📂 Gespeichert unter: {OUTPUT_FILE}")
 
             print("🧐 Verarbeite gesprochene Eingabe mit Faster-Whisper (Deutsch) …")
             try:
                 segments, info = fw_model.transcribe(OUTPUT_FILE, beam_size=5, language="de")
-
-                text = ""
-                for segment in segments:
-                    text += segment.text.strip() + " "
-                text = text.strip()
-
+                text = " ".join([segment.text.strip() for segment in segments]).strip()
                 print(f"📝 Erkannter Text (Faster-Whisper): {repr(text)}")
             except Exception as e:
                 print(f"❌ Fehler bei Faster-Whisper: {e}")
@@ -182,21 +180,24 @@ while True:
 
             print("⚡ Starte Filter …")
             filtered_text = clean_text(text)
-            print(f"🧹 Gefilterter Text: {filtered_text}")
+            print(f"🩹 Gefilterter Text: {filtered_text}")
 
             LETZTER_SPRECHZEITPUNKT = time.time()
 
-            # ⏲️ Timer-Erkennung
             match = re.match(r".*timer.*für\s+(\d+)\s+(sekunden|minuten|stunden)", filtered_text.lower())
             if match:
                 zahl = match.group(1)
                 einheit = match.group(2)
                 print(f"⏲️ Starte Timer für {zahl} {einheit} ...")
-                time.sleep(1.5)
                 try:
+                    open("/tmp/mic_paused", "w").close()
                     subprocess.Popen([
                         "/opt/venv/bin/python", "/opt/script/timer.py", zahl, einheit
                     ], start_new_session=True)
+                    time.sleep(1.5)
+                    if os.path.exists("/tmp/mic_paused"):
+                        os.remove("/tmp/mic_paused")
+
                     confirm_files = glob.glob(os.path.join(CONFIRM_DIR, "*.wav"))
                     if confirm_files:
                         confirm_wav = random.choice(confirm_files)
@@ -206,7 +207,8 @@ while True:
                 except Exception as e:
                     print(f"❌ Fehler beim Start von timer.py: {e}")
                 continue
-                
+
+        
             # 📆 Kalender-Erkennung
             if "kalender" in filtered_text.lower():
                print("📆 Kalenderbefehl erkannt")

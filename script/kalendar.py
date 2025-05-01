@@ -20,6 +20,7 @@ TTS_SAMPLERATE = 22050
 TARGET_SAMPLERATE = 48000
 KEINE_TERMINE_WAV = "/opt/sound/keine_termine_im_kalender.wav"
 LADE_WAV_DIR = "/opt/sound/kalendar/"
+MIC_PAUSE_FLAG = "/tmp/mic_paused"
 
 # Wochentage auf Deutsch
 WOCHENTAG_MAP = {
@@ -97,6 +98,7 @@ def ist_heute(dateipfad):
 
 def play_wav_file(path, audio_index):
     try:
+        open(MIC_PAUSE_FLAG, "w").close()  # 🎤 Mikrofon deaktivieren
         data, samplerate = sf.read(path)
         print(f"🔊 Original-Samplerate: {samplerate}")
         if samplerate != TARGET_SAMPLERATE:
@@ -106,6 +108,9 @@ def play_wav_file(path, audio_index):
         print(f"✅ Audio erfolgreich abgespielt: {path}")
     except Exception as e:
         print(f"❌ Fehler bei Audioausgabe: {e}")
+    finally:
+        if os.path.exists(MIC_PAUSE_FLAG):
+            os.remove(MIC_PAUSE_FLAG)
 
 def tts_speichern_und_abspielen(text, argument):
     wav_datei = f"/tmp/kalendar_{argument}.wav"
@@ -117,7 +122,6 @@ def tts_speichern_und_abspielen(text, argument):
         print(f"Spiele vorhandene Sprachdatei ab: {wav_datei}")
         play_wav_file(wav_datei, audio_index)
     else:
-        # Zufällige Lade-Antwort abspielen
         lade_sounds = glob.glob(os.path.join(LADE_WAV_DIR, "*.wav"))
         if lade_sounds:
             zufall = random.choice(lade_sounds)
@@ -130,20 +134,16 @@ def tts_speichern_und_abspielen(text, argument):
         wav = tts.tts(text)
         wav_array = np.array(wav)
 
-        # Lautstärke normalisieren
         max_amp = np.max(np.abs(wav_array))
         if max_amp > 0:
             wav_array = wav_array / max_amp * 0.9
 
-        # Fade-Out anwenden
         fade_duration = int(TTS_SAMPLERATE * 0.3)
         if fade_duration < len(wav_array):
             wav_array[-fade_duration:] *= np.linspace(1, 0, fade_duration)
 
-        # Resampling
         wav_resampled = librosa.resample(wav_array, orig_sr=TTS_SAMPLERATE, target_sr=TARGET_SAMPLERATE)
 
-        # Speichern und abspielen
         sf.write(wav_datei, wav_resampled, TARGET_SAMPLERATE)
         play_wav_file(wav_datei, audio_index)
 
@@ -153,8 +153,7 @@ def main():
         sys.exit(1)
 
     argument = sys.argv[1]
-    
-    # ⏰ Heute nach 12 Uhr? Dann Termin ignorieren
+
     if argument == "heute" and datetime.now().hour >= 12:
         print("🕛 Es ist nach 12 Uhr – heutige Termine werden ignoriert.")
         if os.path.exists(KEINE_TERMINE_WAV):
@@ -162,10 +161,10 @@ def main():
                 audio_index = int(f.read().strip())
             play_wav_file(KEINE_TERMINE_WAV, audio_index)
         return
-    
+
     kalender = lade_kalender(ICS_FILE)
     start, ende = zeitraum_von_argument(argument)
-    
+
     eintraege = finde_termine(kalender, start, ende)
 
     if eintraege:
