@@ -11,7 +11,7 @@ from TTS.api import TTS
 from datetime import datetime
 
 # === Konfiguration ===
-API_KEY = "18544c2b1c77e05882f2ec1fe784b9a6"
+API_KEY = "xxxxxxxxxxxxxxxxKEYxxxxxxxxxx"
 TTS_MODEL = "tts_models/de/thorsten/tacotron2-DDC"
 TTS_SAMPLERATE = 22050
 TARGET_SAMPLERATE = 48000
