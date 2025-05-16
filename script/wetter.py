@@ -44,7 +44,7 @@ def play_wav_file(path, audio_index):
         data, samplerate = sf.read(path)
         print(f"📈 Eingelesen: {len(data)} Samples @ {samplerate} Hz")
         if samplerate != TARGET_SAMPLERATE:
-            print("🔄 Resampling erforderlich...")
+            print("🔄 Resampling erforderlich....")
             data = librosa.resample(np.array(data), orig_sr=samplerate, target_sr=TARGET_SAMPLERATE)
         sd.play(data, samplerate=TARGET_SAMPLERATE, device=audio_index)
         sd.wait()
