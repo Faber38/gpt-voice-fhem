@@ -9,9 +9,15 @@ import soundfile as sf
 import librosa
 from TTS.api import TTS
 from datetime import datetime
+import configparser
 
-# === Konfiguration ===
-API_KEY = "xxxxxxxxxxxxxxxxKEYxxxxxxxxxx"
+# Konfigurationsdatei laden
+config = configparser.ConfigParser()
+config.read("/opt/script/api_keys.conf")
+
+# API-Key sicher lesen
+API_KEY = config.get("OpenWeather", "api_key").strip()
+
 TTS_MODEL = "tts_models/de/thorsten/tacotron2-DDC"
 TTS_SAMPLERATE = 22050
 TARGET_SAMPLERATE = 48000
