@@ -1,15 +1,39 @@
+# Virtuelle Umgebung
 venv/
-*.wav
-*.zip
-*.gguf
+
+# Temporäre Dateien / Caches / Logs
 *.pyc
 __pycache__/
+**/__pycache__/
 *.log
 *.tmp
 *.swp
-pytorch/
-/llama.cpp
-/opt/script/fhem_auth.conf
-script/fhem_auth.conf
-cudnn-local-repo-debian12-9.8.0_1.0-1_amd64.deb
+*.bak
+*.old
+*.orig
 
+# Audio-Dateien (WAV), aber Beispiele ausnehmen
+*.wav
+!sound/confirm/*.wav
+!sound/error/*.wav
+!sound/responses/*.wav
+
+# Modelle und große Dateien
+*.gguf
+*.zip
+*.deb
+
+# Eigene Projekte / Repos
+pytorch/
+llama.cpp/
+
+# Vertrauliche Konfigurationen (lokal bleiben!)
+script/fhem_auth.conf
+script/api_keys.conf
+
+# Sicherstellen, dass systemweite Pfade ignoriert werden (nur wenn nötig)
+# /opt/script/fhem_auth.conf  ← redundant, wenn nicht im Repo
+
+# System-Dateien
+.DS_Store
+Thumbs.db

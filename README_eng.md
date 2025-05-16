@@ -1,65 +1,79 @@
 
-# 📢 Voice Control for FHEM – Local & Offline
+# 📢 Offline Voice Control for FHEM (Home Automation)
 
-Welcome to my **local voice control system** for smart home automation with **wakeword detection, speech transcription, GPT analysis, and FHEM control** – fully **offline** and optimized for **fast responses**!
+Welcome to my **local voice assistant** for home automation – featuring **wake word detection**, **speech transcription**, **GPT-based command parsing**, and **FHEM integration**. All components run **fully offline** for **fast response times** and **maximum privacy**.
 
 ---
 
 ## 🔥 Features
 
-- **Wakeword Detection:**  
-  - Real-time detection using Vosk (`alexa`)
+- **Wake Word Detection:**  
+  - Listens for **"alexa"** using Vosk (German offline model)
 - **Speech Transcription:**  
-  - Fast & accurate with Faster-Whisper (`small` model, GPU-optimized)
-- **Command Processing:**  
-  - Temperature queries
-  - Set timers
-  - Chat mode ("talk to me")
-  - Home automation (e.g., lights, shutters) via FHEM
+  - Fully local transcription using Vosk – no Whisper, no internet
+- **Command Handling:**  
+  - Control lights and shutters (via FHEM)
+  - Ask for indoor/outdoor temperatures
+  - Calendar events
+  - Small talk mode ("talk to me")
 - **Text-to-Speech (TTS):**  
-  - Clear German speech output with Coqui TTS (Thorsten voice)
-- **Audio Playback:**  
-  - Reliable audio output with retry mechanism if device busy
-- **Fully Local:**  
-  - No cloud services required, 100% offline
-- **GPU Support:**  
-  - CUDA acceleration for Whisper and GPT
+  - Natural German output using Coqui TTS (Thorsten voice)
+- **Audio Output:**  
+  - Robust playback via `aplay`, audio device configurable
+  - Randomized success/error responses
+- **100% Offline:**  
+  - No cloud, no external APIs – works completely local
+- **GPU Acceleration:**  
+  - CUDA support for fast local GPT inference (TinyLlama, Phi, Mistral)
 
 ---
 
 ## ⚙️ Architecture
 
 ```text
-Wakeword → Record Audio → Transcribe (Whisper) → 
-Text Filter → Command Detection → 
-Action (e.g., Timer, Temperature, FHEM) → 
-Response via TTS
+Wake Word ("alexa") → Record (8s) → Transcription (Vosk) →
+→ GPT Parsing (TinyLlama / Phi) →
+→ Execute Command (FHEM) →
+→ Voice Response via Coqui TTS
 ```
 
 ---
 
 ## 🛠️ Components
 
-| Component            | Description |
-|:---------------------|:-------------|
-| `wakeword_niko.py`    | Main process: listening, recording, command evaluation |
-| `gpt_temp.py`         | Temperature query and GPT-based response |
-| `timer.py`            | Set and handle timers |
-| `gpt_to_fhem.py`      | Send commands to FHEM |
-| `filter.py`           | Filter and simplify recognized text |
-| `/opt/sound/`         | WAV files for responses, timers, errors |
+| File                    | Description |
+|-------------------------|-------------|
+| `wakeword_niko.py`      | Main loop: wake word → record → process |
+| `gpt_to_fhem.py`        | Parses GPT output and triggers FHEM action |
+| `filter.py`             | Cleans input text (e.g., "turn on the bathroom light") |
+| `play_random_response.py` | Plays random confirmation messages |
+| `play_random_error.py`    | Plays random error messages |
+| `wetter.py`             | Weather info (via online API, then TTS) |
+| `frage.py`              | General question answering (offline GPT) |
+| `audio_device.conf`     | Config file for ALSA audio device (e.g. `hw:CARD=S3,DEV=0`) |
+
+---
+
+## 🔉 Sound Folder Structure
+
+```text
+/opt/sound/
+ ├── responses/    → Random replies after wake word
+ ├── confirm/      → Success responses ("done", etc.)
+ ├── error/        → Error messages
+ ├── timer/        → Alarm and timer sounds
+```
 
 ---
 
 ## 🧰 Requirements
 
 - **Python 3.11**
-- `vosk`, `sounddevice`, `samplerate`
-- `numpy`, `librosa`, `faster-whisper`
-- `TTS (coqui-ai)`, `llama-cpp-python`
-- optional: CUDA for GPU acceleration
+- Python packages: `vosk`, `sounddevice`, `numpy`, `librosa`, `samplerate`
+- Local inference: `llama-cpp-python`, `TTS` (Coqui)
+- Optional: CUDA (for local GPT & TTS acceleration)
 
-Recommended setup:
+Install using `venv` (recommended):
 
 ```bash
 python3 -m venv /opt/venv
@@ -69,57 +83,66 @@ pip install -r requirements.txt
 
 ---
 
-## 🏁 Start
+## 🏁 Getting Started
 
-1. Start the Wakeword system:
+1. Start the system:
 
 ```bash
 /opt/script/start_voice_system.sh
 ```
 
-(Service `voice_system.service`)
+(This can also be launched via `voice_system.service` systemd unit.)
 
-2. Speak a command → The system will respond.
+2. Say something like:  
+**"Alexa, turn on the light in the living room"**  
+→ The system will respond immediately – **fully local**.
 
 ---
 
-## 📦 Directory Structure
+## 📦 Project Structure
 
 ```text
 /opt/
  ├── script/
  │    ├── wakeword_niko.py
- │    ├── gpt_temp.py
- │    ├── timer.py
  │    ├── gpt_to_fhem.py
- │    └── filter.py
+ │    ├── filter.py
+ │    ├── wetter.py
+ │    ├── frage.py
+ │    ├── play_random_response.py
+ │    ├── play_random_error.py
+ │    └── audio_device.conf
  ├── sound/
  │    ├── responses/
  │    ├── confirm/
  │    ├── error/
- │    ├── timer/
+ │    └── timer/
  ├── venv/
  ├── vosk/
- ├── mistral-7b-instruct-v0.1.Q4_K_M.gguf
+ │    └── vosk-de/
+ ├── models/
+ │    └── phi-2.Q4_K_M.gguf
 ```
 
 ---
 
-## 🧹 To-Do
+## ✅ To-Do
 
-- [x] Stabilize Wakeword detection
-- [x] Separate temperature & timer logic cleanly
-- [ ] Support multiple timers in parallel
-- [ ] Add web interface for timer status
-- [ ] Improve audio error handling
+- [x] Stabilize wake word ("alexa") with Vosk
+- [x] Local GPT prompt parsing
+- [x] FHEM integration complete
+- [x] Coqui TTS response system
+- [ ] Add system status queries (CPU, RAM)
+- [ ] Add web interface for Hotspot/MAC whitelist management
 
 ---
 
-## 🧑‍💻 Author
+## 👤 Author
 
 Project by **Faber38**  
-→ Private smart home system running **Debian VM (Proxmox)** with **local language models**.
+→ Local voice assistant for FHEM home automation, based on Vosk, Coqui TTS and llama-cpp  
+→ Runs on **Debian VM (Proxmox)** with **CUDA-accelerated models**
 
 ---
 
-# 🚀 Have fun building and customizing your own system!
+# 🚀 Enjoy building and expanding your own local voice control system!

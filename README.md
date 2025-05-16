@@ -1,66 +1,79 @@
 
 # 📢 Sprachsteuerung für FHEM – Lokal & Offline
 
-Willkommen zu meinem **lokalen Sprachsystem** für die Haussteuerung mit **Wakeword-Erkennung, Sprachtranskription, GPT-Analyse und FHEM-Anbindung** – komplett **offline** und optimiert für **schnelle Reaktionen**!
+Willkommen zu meinem **lokalen Sprachsystem** für die Haussteuerung mit **Wakeword-Erkennung, Sprachtranskription, GPT-Auswertung und FHEM-Anbindung** – komplett **offline**, **rasant schnell** und **vollständig lokal auf deinem Gerät**!
 
 ---
 
 ## 🔥 Features
 
 - **Wakeword-Erkennung:**  
-  - Echtzeit-Erkennung über Vosk (`alexa`)
+  - Reagiert auf **„alexa“** per Vosk (deutsches Offline-Modell)
 - **Sprachtranskription:**  
-  - Schnell & präzise mit Faster-Whisper (`small` Modell, GPU-optimiert)
+  - Offline über Vosk – kein Whisper, keine Internetverbindung
 - **Sprachbefehlsverarbeitung:**  
-  - Temperaturabfragen
-  - Timer setzen
-  - Plaudermodus ("rede mit mir")
-  - Hausautomation (z.B. Licht, Rolläden) über FHEM
+  - Licht & Rollos steuern (FHEM)
+  - Temperaturstatus abfragen
+  - Kalenderansagen (lokal)
+  - Smalltalk („rede mit mir“)
 - **Text-to-Speech (TTS):**  
-  - Klare deutsche Sprachausgabe mit Coqui TTS (Thorsten)
+  - Klare deutsche Sprachausgabe mit Coqui TTS (Thorsten), lokal per GPU
 - **Audio-Ausgabe:**  
-  - Zuverlässige Audiowiedergabe (mit Retry bei Gerätblockaden)
-- **Vollständig lokal:**  
-  - Keine Cloud-Dienste, keine Internetverbindung nötig
+  - Stabile Wiedergabe via `aplay`, Gerät über `audio_device.conf` konfigurierbar
+  - Zufällige Bestätigungs- und Fehlermeldungen
+- **Vollständig offline:**  
+  - Kein Cloudzugriff, keine Internetverbindung nötig
 - **GPU-Unterstützung:**  
-  - CUDA-Beschleunigung für Whisper und GPT
+  - CUDA-Beschleunigung für GPT (TinyLlama, Phi, Mistral)
 
 ---
 
 ## ⚙️ Architektur
 
 ```text
-Wakeword → Sprachaufnahme → Transkription (Whisper) → 
-Textfilter → Befehlserkennung → 
-Aktion (z.B. Timer, Temperatur, FHEM) → 
-Antwort per TTS
+Wakeword (alexa) → Aufnahme (8 Sek.) → Vosk-Transkription → 
+→ GPT-Auswertung (lokal, tinyllama/phi) → 
+→ Befehl an FHEM (via gpt_to_fhem.py) → 
+→ Antwort per Coqui TTS → Audio-Ausgabe
 ```
 
 ---
 
 ## 🛠️ Komponenten
 
-| Komponente          | Beschreibung |
-|:--------------------|:--------------|
-| `wakeword_niko.py`   | Hauptprozess: Lauschen, Aufnahme, Befehlsauswertung |
-| `gpt_temp.py`        | Temperaturabfrage und freundliche Antwort über GPT |
-| `timer.py`           | Timer setzen und ablaufen lassen |
-| `kalendar.py`        | *ics Datei abfragen! |
-| `gpt_to_fhem.py`     | Sprachsteuerung an FHEM senden |
-| `filter.py`          | Texte filtern und vereinfachen |
-| `/opt/sound/`        | WAV-Dateien für Antworten, Timer, Fehler |
+| Komponente              | Beschreibung |
+|-------------------------|--------------|
+| `wakeword_niko.py`      | Hauptprozess: Wakeword, Aufnahme, Weitergabe |
+| `gpt_to_fhem.py`        | Extrahiert Befehl aus Text und steuert FHEM |
+| `filter.py`             | Bereinigt Eingabetext (z. B. "mach das Licht im Bad an") |
+| `play_random_response.py` | Spielt zufällige Bestätigungsantwort ab |
+| `play_random_error.py`    | Spielt zufällige Fehlermeldung ab |
+| `wetter.py`             | Wetterdaten online holen, ausgeben per TTS |
+| `frage.py`              | Allgemeine Fragen lokal beantworten |
+| `audio_device.conf`     | Definiert Audio-Ausgabegerät (z. B. `hw:CARD=S3,DEV=0`) |
+
+---
+
+## 🔉 Soundstruktur
+
+```text
+/opt/sound/
+ ├── responses/    → Zufällige Antworten nach Wakeword
+ ├── confirm/      → „Wird erledigt“-Antworten
+ ├── error/        → Fehlermeldungen bei Nichtverstehen
+ ├── timer/        → Klingelton etc.
+```
 
 ---
 
 ## 🧰 Abhängigkeiten
 
 - **Python 3.11**
-- `vosk`, `sounddevice`, `samplerate`
-- `numpy`, `librosa`, `faster-whisper`
+- `vosk`, `sounddevice`, `numpy`, `librosa`, `samplerate`
 - `TTS (coqui-ai)`, `llama-cpp-python`
-- optional: CUDA für GPU-Beschleunigung
+- Optional: CUDA-Treiber für GPU-Beschleunigung
 
-Installation über venv (empfohlen):
+Installation via `venv`:
 
 ```bash
 python3 -m venv /opt/venv
@@ -72,55 +85,62 @@ pip install -r requirements.txt
 
 ## 🏁 Starten
 
-1. Wakeword-System starten:
+1. System starten:
 
 ```bash
 /opt/script/start_voice_system.sh
 ```
 
-(Dient als Service: `voice_system.service`)
+(Der Dienst `voice_system.service` kann diesen Aufruf automatisieren.)
 
-2. Sprachbefehl aussprechen → System reagiert automatisch.
+2. Sag z. B. **„Alexa, mach im Wohnzimmer das Licht an“** – das System erkennt, verarbeitet, antwortet – **alles lokal.**
 
 ---
 
-## 📦 Verzeichnisstruktur
+## 📦 Projektstruktur
 
 ```text
 /opt/
  ├── script/
  │    ├── wakeword_niko.py
- │    ├── gpt_temp.py
- │    ├── timer.py
  │    ├── gpt_to_fhem.py
- │    └── filter.py
+ │    ├── filter.py
+ │    ├── wetter.py
+ │    ├── frage.py
+ │    ├── play_random_response.py
+ │    ├── play_random_error.py
+ │    └── audio_device.conf
  ├── sound/
  │    ├── responses/
  │    ├── confirm/
  │    ├── error/
- │    ├── timer/
+ │    └── timer/
  ├── venv/
  ├── vosk/
- ├── mistral-7b-instruct-v0.1.Q4_K_M.gguf
+ │    └── vosk-de/
+ ├── models/
+ │    └── phi-2.Q4_K_M.gguf
 ```
 
 ---
 
-## 🧹 To-Do
+## ✅ To-Do
 
-- [x] Wakeword-Erkennung stabilisieren
-- [x] Temperatur & Timer-Logik sauber trennen
-- [ ] Mehrere parallele Timer ermöglichen
-- [ ] Web-Interface für Timer-Status
-- [ ] Bessere Fehlerbehandlung bei Audio
+- [x] Wakeword stabilisiert mit Vosk („alexa“)
+- [x] GPT-Eingabe über lokale Modelle
+- [x] FHEM-Steuerung funktioniert vollständig
+- [x] Antwortsystem mit Coqui TTS
+- [ ] Statusabfrage für CPU, RAM etc. per Sprache
+- [ ] Web-Interface zur MAC-Whitelist im Hotspot
 
 ---
 
-## 🧑‍💻 Autor
+## 👤 Autor
 
 Projekt von **Faber38**  
-→ für privates Haussteuerungssystem auf **Debian VM (Proxmox)** mit **lokalem Sprachmodell**.
+→ Lokale Sprachsteuerung für Hausautomation mit Vosk, Coqui, GPT & FHEM  
+→ Läuft auf Debian VM (Proxmox) mit GPU-Beschleunigung (CUDA)
 
 ---
 
-# 🚀 Viel Spaß beim Nachbauen und Weiterentwickeln!
+# 🚀 Viel Spaß beim Ausprobieren und Erweitern!

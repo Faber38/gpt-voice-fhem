@@ -3,3 +3,5 @@ minutes|minuten
 markisen|markise
 marquise|markise
 marokise|markise
+makise|markise
+maltese|markise
