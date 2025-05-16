@@ -1,2 +1,4 @@
 # erkannt | verbessert !
-
+ausgehen|aus
+einschalten|an
+ausschalten|aus

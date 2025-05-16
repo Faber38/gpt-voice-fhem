@@ -15,22 +15,15 @@ from TTS.api import TTS
 # === Konfiguration ===
 ICS_FILE = "/opt/kalendar/elsdorf.ics"
 AUDIO_INDEX_FILE = "/opt/script/audio_index.conf"
-TTS_MODEL = "tts_models/de/thorsten/tacotron2-DCA"
+TTS_MODEL = "tts_models/de/thorsten/tacotron2-DDC"
 TTS_SAMPLERATE = 22050
 TARGET_SAMPLERATE = 48000
 KEINE_TERMINE_WAV = "/opt/sound/keine_termine_im_kalender.wav"
-LADE_WAV_DIR = "/opt/sound/kalendar/"
 MIC_PAUSE_FLAG = "/tmp/mic_paused"
 
-# Wochentage auf Deutsch
 WOCHENTAG_MAP = {
-    "Monday": "Montag",
-    "Tuesday": "Dienstag",
-    "Wednesday": "Mittwoch",
-    "Thursday": "Donnerstag",
-    "Friday": "Freitag",
-    "Saturday": "Samstag",
-    "Sunday": "Sonntag"
+    "Monday": "Montag", "Tuesday": "Dienstag", "Wednesday": "Mittwoch",
+    "Thursday": "Donnerstag", "Friday": "Freitag", "Saturday": "Samstag", "Sunday": "Sonntag"
 }
 
 def lade_kalender(pfad):
@@ -47,10 +40,7 @@ def zeitraum_von_argument(arg):
     elif arg == "morgen":
         return heute + timedelta(days=1), heute + timedelta(days=1)
     elif arg == "woche":
-        if datetime.now().hour >= 12:
-           start_datum = heute + timedelta(days=1)
-        else:
-           start_datum = heute
+        start_datum = heute + timedelta(days=1) if datetime.now().hour >= 12 else heute
         return start_datum, heute + timedelta(days=6)
     else:
         try:
@@ -93,19 +83,17 @@ def ist_heute(dateipfad):
     if not os.path.exists(dateipfad):
         return False
     t = os.path.getmtime(dateipfad)
-    tag_der_datei = datetime.fromtimestamp(t).date()
-    return tag_der_datei == datetime.now().date()
+    return datetime.fromtimestamp(t).date() == datetime.now().date()
 
 def play_wav_file(path, audio_index):
     try:
-        open(MIC_PAUSE_FLAG, "w").close()  # 🎤 Mikrofon deaktivieren
+        open(MIC_PAUSE_FLAG, "w").close()
         data, samplerate = sf.read(path)
-        print(f"🔊 Original-Samplerate: {samplerate}")
         if samplerate != TARGET_SAMPLERATE:
             data = librosa.resample(np.array(data), orig_sr=samplerate, target_sr=TARGET_SAMPLERATE)
         sd.play(data, samplerate=TARGET_SAMPLERATE, device=audio_index)
         sd.wait()
-        print(f"✅ Audio erfolgreich abgespielt: {path}")
+        print(f"✅ Audio abgespielt: {path}")
     except Exception as e:
         print(f"❌ Fehler bei Audioausgabe: {e}")
     finally:
@@ -114,48 +102,45 @@ def play_wav_file(path, audio_index):
 
 def tts_speichern_und_abspielen(text, argument):
     wav_datei = f"/tmp/kalendar_{argument}.wav"
-
     with open(AUDIO_INDEX_FILE) as f:
         audio_index = int(f.read().strip())
 
     if ist_heute(wav_datei):
-        print(f"Spiele vorhandene Sprachdatei ab: {wav_datei}")
+        print(f"📁 Verwende gecachte Datei: {wav_datei}")
         play_wav_file(wav_datei, audio_index)
-    else:
-        lade_sounds = glob.glob(os.path.join(LADE_WAV_DIR, "*.wav"))
-        if lade_sounds:
-            zufall = random.choice(lade_sounds)
-            print(f"Ladehinweis: {zufall}")
-            play_wav_file(zufall, audio_index)
+        return
 
-        print(f"Erzeuge neue Sprachdatei mit TTS für '{argument}'...")
-        tts = TTS(model_name=TTS_MODEL, progress_bar=False, gpu=True)
-        print(f"✅ Geladenes TTS-Modell: {tts.model_name}")
+    try:
+        print(f"🧠 Erzeuge TTS für Kalendereintrag: {text}")
+        tts = TTS(model_name=TTS_MODEL, progress_bar=False)
+        tts.to("cuda")
         wav = tts.tts(text)
         wav_array = np.array(wav)
 
         max_amp = np.max(np.abs(wav_array))
         if max_amp > 0:
-            wav_array = wav_array / max_amp * 0.9
+            wav_array *= 0.9 / max_amp
 
         fade_duration = int(TTS_SAMPLERATE * 0.3)
         if fade_duration < len(wav_array):
             wav_array[-fade_duration:] *= np.linspace(1, 0, fade_duration)
 
         wav_resampled = librosa.resample(wav_array, orig_sr=TTS_SAMPLERATE, target_sr=TARGET_SAMPLERATE)
-
         sf.write(wav_datei, wav_resampled, TARGET_SAMPLERATE)
+        print(f"💾 Gespeichert: {wav_datei}")
         play_wav_file(wav_datei, audio_index)
+    except Exception as e:
+        print(f"❌ Fehler beim TTS oder Wiedergabe: {e}")
 
 def main():
     if len(sys.argv) < 2:
-        print("Nutzung: kalendar.py [heute|morgen|woche|YYYY-MM-DD]")
+        print("❌ Nutzung: kalendar.py [heute|morgen|woche|YYYY-MM-DD]")
         sys.exit(1)
 
     argument = sys.argv[1]
 
     if argument == "heute" and datetime.now().hour >= 12:
-        print("🕛 Es ist nach 12 Uhr – heutige Termine werden ignoriert.")
+        print("🕛 Nach 12 Uhr – 'heute' wird übersprungen.")
         if os.path.exists(KEINE_TERMINE_WAV):
             with open(AUDIO_INDEX_FILE) as f:
                 audio_index = int(f.read().strip())
@@ -164,17 +149,16 @@ def main():
 
     kalender = lade_kalender(ICS_FILE)
     start, ende = zeitraum_von_argument(argument)
-
     eintraege = finde_termine(kalender, start, ende)
 
     if eintraege:
-        print("Kalendereinträge:")
+        print("📆 Kalendereinträge:")
         for zeile in eintraege:
             print(zeile)
-        ausgabetext = generiere_sprechtext(eintraege)
-        tts_speichern_und_abspielen(ausgabetext, argument)
+        sprechtext = generiere_sprechtext(eintraege)
+        tts_speichern_und_abspielen(sprechtext, argument)
     else:
-        print("Keine Termine im angegebenen Zeitraum.")
+        print("📭 Keine Einträge gefunden.")
         if os.path.exists(KEINE_TERMINE_WAV):
             with open(AUDIO_INDEX_FILE) as f:
                 audio_index = int(f.read().strip())

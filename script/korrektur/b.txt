@@ -1,2 +1,7 @@
 # falsch|richtig
 boxe|box
+babyfond|babyphone
+babyfon|babyphone
+babyphonee|babyphone
+babyfohn|babyphone
+babyphoneen|babyphone

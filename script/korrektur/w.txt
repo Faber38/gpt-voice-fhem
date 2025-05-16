@@ -1,1 +1,5 @@
 # falsch|richtig
+wohnzimmerlicht|wohnzimmer licht
+pumpe|wasser
+wasserpumpe|wasser
+wurzimmerlicht|wohnzimmer licht

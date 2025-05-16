@@ -3,3 +3,4 @@ licht liga aus|licht diele aus
 licht diese aus|licht diele aus
 licht seele aus|licht diele aus
 licht lidl aus|licht diele aus
+light|licht

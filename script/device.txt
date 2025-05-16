@@ -14,7 +14,7 @@ Wohnzimmer Rollade rauf|hoch
 Wohnzimmer Rollade runter|zu
 Diele Rollade rauf|hoch
 Diele Rollade runter|zu
-terrassentür rollade rauf
+terrassentür rollade rauf|hoch
 terrassentür rollade runter
 Bad Rollade rauf|hoch
 Bad Rollade runter|zu
@@ -34,4 +34,5 @@ rolladenautomatik an|einsschalten
 rolladenautomatik aus|ausschalten
 box an|einschalten|ein
 box aus|ausschalten
-
+babyphone ein|an
+babyphone aus
