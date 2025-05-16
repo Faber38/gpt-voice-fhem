@@ -1,1 +1,4 @@
-/opt/script/api_keys.conf
+# Auth-Konfigurationen
+fhem_auth.conf
+api_keys.conf
+
