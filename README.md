@@ -8,14 +8,16 @@ Willkommen zu meinem **lokalen Sprachsystem** für die Haussteuerung mit **Wakew
 ## 🔥 Features
 
 - **Wakeword-Erkennung:**  
-  - Reagiert auf **„alexa“** per Vosk (deutsches Offline-Modell)
+  - Reagiert auf **„alexa“** (jedes andrere Wort möglich) per Vosk (deutsches Offline-Modell)
 - **Sprachtranskription:**  
   - Offline über Vosk – kein Whisper, keine Internetverbindung
 - **Sprachbefehlsverarbeitung:**  
   - Licht & Rollos steuern (FHEM)
   - Temperaturstatus abfragen
+  - Timer erstellen (mehrfach möglich)
   - Kalenderansagen (lokal)
-  - Smalltalk („rede mit mir“)
+  - Wetter abfragen (OpenWeather  -API-KEY nötig)
+  - Smalltalk („rede mit mir“) nur im Rahmen des Modells möglich
 - **Text-to-Speech (TTS):**  
   - Klare deutsche Sprachausgabe mit Coqui TTS (Thorsten), lokal per GPU
 - **Audio-Ausgabe:**  
@@ -43,12 +45,15 @@ Wakeword (alexa) → Aufnahme (8 Sek.) → Vosk-Transkription →
 
 | Komponente              | Beschreibung |
 |-------------------------|--------------|
-| `wakeword_niko.py`      | Hauptprozess: Wakeword, Aufnahme, Weitergabe |
+| `wakeword.py`           | Hauptprozess: Wakeword, Aufnahme, Weitergabe |
+| `commands.py`           | Modularer Verteiler |
 | `gpt_to_fhem.py`        | Extrahiert Befehl aus Text und steuert FHEM |
 | `filter.py`             | Bereinigt Eingabetext (z. B. "mach das Licht im Bad an") |
-| `play_random_response.py` | Spielt zufällige Bestätigungsantwort ab |
-| `play_random_error.py`    | Spielt zufällige Fehlermeldung ab |
+| `device.txt`            | Filter für erlaubte Geräte in FHEM |
+| `gpt_temp.py`           | holt sich in FHEM readings der Temperaturen |
 | `wetter.py`             | Wetterdaten online holen, ausgeben per TTS |
+| `timer.py`              | erstellt Timer (mit Ansage und Absage (fertig ect)|
+| `Kalendar`              | holt sich Daten aus einer *.ics (heute|morgen|woche)
 | `frage.py`              | Allgemeine Fragen lokal beantworten |
 | `audio_device.conf`     | Definiert Audio-Ausgabegerät (z. B. `hw:CARD=S3,DEV=0`) |
 
@@ -71,7 +76,8 @@ Wakeword (alexa) → Aufnahme (8 Sek.) → Vosk-Transkription →
 - **Python 3.11**
 - `vosk`, `sounddevice`, `numpy`, `librosa`, `samplerate`
 - `TTS (coqui-ai)`, `llama-cpp-python`
-- Optional: CUDA-Treiber für GPU-Beschleunigung
+- unverzichtbar: CUDA-Treiber für GPU-Beschleunigung 
+  
 
 Installation via `venv`:
 
@@ -94,7 +100,7 @@ pip install -r requirements.txt
 (Der Dienst `voice_system.service` kann diesen Aufruf automatisieren.)
 
 2. Sag z. B. **„Alexa, mach im Wohnzimmer das Licht an“** – das System erkennt, verarbeitet, antwortet – **alles lokal.**
-
+            **"Alexa, wie wrd das Wetter heute in Köln "** - Wetterdaten werden geholt gespeichert und vorgelesen.
 ---
 
 ## 📦 Projektstruktur
@@ -102,19 +108,27 @@ pip install -r requirements.txt
 ```text
 /opt/
  ├── script/
- │    ├── wakeword_niko.py
+ │    ├── wakeword.py
  │    ├── gpt_to_fhem.py
  │    ├── filter.py
  │    ├── wetter.py
  │    ├── frage.py
- │    ├── play_random_response.py
- │    ├── play_random_error.py
- │    └── audio_device.conf
+ │    ├── wetter.py
+ │    ├── timer.py
+ │    ├── audio_device.conf
+ │    └── modules/
+ │         ├── commands.py
+ │         ├── devices.py
+ │         ├── recording.py
+ │         └── transcription.py   
+ │
  ├── sound/
  │    ├── responses/
  │    ├── confirm/
  │    ├── error/
  │    └── timer/
+ ├── kalendar/
+       └──Ort.ics   
  ├── venv/
  ├── vosk/
  │    └── vosk-de/
@@ -130,9 +144,10 @@ pip install -r requirements.txt
 - [x] GPT-Eingabe über lokale Modelle
 - [x] FHEM-Steuerung funktioniert vollständig
 - [x] Antwortsystem mit Coqui TTS
+- [x] Wetter,Timer,Kalendar, Temperatur abfrage
+- [ ] Plaudern  
+- [ ] Frage ! Wissens-Antwort (lokal)
 - [ ] Statusabfrage für CPU, RAM etc. per Sprache
-- [ ] Web-Interface zur MAC-Whitelist im Hotspot
-
 ---
 
 ## 👤 Autor
@@ -140,7 +155,7 @@ pip install -r requirements.txt
 Projekt von **Faber38**  
 → Lokale Sprachsteuerung für Hausautomation mit Vosk, Coqui, GPT & FHEM  
 → Läuft auf Debian VM (Proxmox) mit GPU-Beschleunigung (CUDA)
-
+→ Motherboard : GA-AB350-Gaming 3 (rev. 1.x) | AMD Ryzen7 1700 | 64GB RAM | Nvidia GTX3036
 ---
 
 # 🚀 Viel Spaß beim Ausprobieren und Erweitern!
