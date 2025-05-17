@@ -8,7 +8,7 @@ Willkommen zu meinem **lokalen Sprachsystem** für die Haussteuerung mit **Wakew
 ## 🔥 Features
 
 - **Wakeword-Erkennung:**  
-  - Reagiert auf **„alexa“** (jedes andrere Wort möglich) per Vosk (deutsches Offline-Modell)
+  - Reagiert auf **„alexa“** (jedes andere Wort möglich) per Vosk (deutsches Offline-Modell)
 - **Sprachtranskription:**  
   - Offline über Vosk – kein Whisper, keine Internetverbindung
 - **Sprachbefehlsverarbeitung:**  
@@ -155,7 +155,7 @@ pip install -r requirements.txt
 Projekt von **Faber38**  
 → Lokale Sprachsteuerung für Hausautomation mit Vosk, Coqui, GPT & FHEM  
 → Läuft auf Debian VM (Proxmox) mit GPU-Beschleunigung (CUDA)
-→ Motherboard : GA-AB350-Gaming 3 (rev. 1.x) | AMD Ryzen7 1700 | 64GB RAM | Nvidia GTX3036
+→ Motherboard: GA-AB350 │ CPU:AMD Ryzen 7 1700 │ RAM: 64 GB Nvidia GTX3036
 ---
 
 # 🚀 Viel Spaß beim Ausprobieren und Erweitern!
