@@ -152,10 +152,11 @@ pip install -r requirements.txt
 
 ## 👤 Autor
 
-Projekt von **Faber38**  
+Projekt von Faber38  
 → Lokale Sprachsteuerung für Hausautomation mit Vosk, Coqui, GPT & FHEM  
 → Läuft auf Debian VM (Proxmox) mit GPU-Beschleunigung (CUDA)
 → Motherboard: GA-AB350 │ CPU:AMD Ryzen 7 1700 │ RAM: 64 GB Nvidia GTX3036
+
 ---
 
 # 🚀 Viel Spaß beim Ausprobieren und Erweitern!
