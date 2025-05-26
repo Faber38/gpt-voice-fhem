@@ -22,8 +22,6 @@ Schlafzimmer Rollade rauf|hoch
 Schlafzimmer Rollade runter|zu
 Markise raus
 Markise rein
-Haus Alarmanlage ein
-Haus Alarmanlage aus
 tageslicht an|ein
 tageslicht aus
 wasser an
@@ -36,3 +34,5 @@ box an|einschalten|ein
 box aus|ausschalten
 babyphone ein|an
 babyphone aus
+Fernseher ein|an
+Fernseher aus
