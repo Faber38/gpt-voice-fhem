@@ -10,12 +10,13 @@ import librosa
 import re
 import configparser
 import sys
-import sounddevice as sd
 import soundfile as sf
+import subprocess
+from pathlib import Path
 from TTS.api import TTS
 
 # ✅ Konfiguration
-AUDIO_INDEX_FILE = "/opt/script/audio_index.conf"
+AUDIO_DEVICE_FILE = "/opt/script/audio_device.conf"     # ← statt audio_index.conf
 TARGET_SAMPLERATE = 48000
 TTS_SAMPLERATE = 22050
 CONFIRM_FILE = "/tmp/fhem_confirmed"
@@ -48,6 +49,13 @@ RAUM_DEVICE_MAP = {
     "aussen": {"device": "HmIP_SWO_PR_001860C9991F02", "reading": "hmstate"},
 }
 
+def lese_alsa_device():
+    try:
+        dev = Path(AUDIO_DEVICE_FILE).read_text().strip()
+        return dev if dev else "default"
+    except Exception:
+        return "default"
+
 def fix_temperature_numbers(text):
     text = re.sub(r'(\d+)\.(\d+)', r'\1 Komma \2', text)
     def replace(match):
@@ -62,13 +70,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     eingabetext = args.text.lower()
 
-    print(f"DEBUG: Prüfe AUDIO_INDEX_FILE: {AUDIO_INDEX_FILE}")
-    if not os.path.exists(AUDIO_INDEX_FILE):
-        print(f"❌ Audio-Index-Datei nicht gefunden: {AUDIO_INDEX_FILE}")
-        sys.exit(1)
-    with open(AUDIO_INDEX_FILE, "r") as f:
-        AUDIO_DEVICE_INDEX = int(f.read().strip())
-    print(f"🔊 Verwende Audio-Index: {AUDIO_DEVICE_INDEX}")
+    alsa_dev = lese_alsa_device()
+    print(f"🔊 Verwende ALSA-Device: {alsa_dev}")
     print(f"🛣️ Eingabe: {eingabetext}")
 
     raum_erkannt = None
@@ -105,8 +108,9 @@ if __name__ == "__main__":
     temp_value = readings[fhem_reading]["Value"]
     print(f"✅ Temperatur-Wert ({raum_erkannt.capitalize()}): {temp_value} °C")
 
-    temp_split = str(temp_value).split(".")
-    temp_value_komma = f"{temp_split[0]} Komma {temp_split[1]}"
+    # Zahl als Sprache (x Komma y)
+    parts = str(temp_value).split(".")
+    temp_value_komma = f"{parts[0]} Komma {parts[1]}" if len(parts) == 2 else str(temp_value)
     print(f"✅ Temperatur ausgeschrieben: {temp_value_komma}")
 
     gpt_antwort = f"Im {raum_erkannt.capitalize()} beträgt die Temperatur {temp_value_komma} Grad."
@@ -119,34 +123,41 @@ if __name__ == "__main__":
 
         print("DEBUG: Lade Coqui TTS Modell")
         tts = TTS(model_name=TTS_MODEL, progress_bar=False)
-        print("DEBUG: Modell auf CUDA verschieben")
-        tts.to("cuda")
+        try:
+            print("DEBUG: Modell auf CUDA verschieben")
+            tts.to("cuda")
+        except Exception:
+            print("DEBUG: CUDA nicht verfügbar – nutze CPU")
+            tts.to("cpu")
 
         print(f"DEBUG: Erzeuge WAV für: {gpt_antwort}")
         wav = tts.tts(gpt_antwort, speed=0.8)
-        wav_array = np.array(wav)
+        wav_array = np.asarray(wav, dtype=np.float32)
 
+        # Normalisieren
         print("DEBUG: Normalisiere Lautstärke")
-        max_amp = np.max(np.abs(wav_array))
+        max_amp = float(np.max(np.abs(wav_array))) if wav_array.size else 0.0
         if max_amp > 0:
             wav_array = wav_array / max_amp * 0.9
 
+        # Fade-Out (300 ms)
         print("DEBUG: Fade-Out")
         fade_duration = int(TTS_SAMPLERATE * 0.3)
-        if fade_duration < len(wav_array):
-            wav_array[-fade_duration:] *= np.linspace(1, 0, fade_duration)
+        if fade_duration < wav_array.shape[0]:
+            wav_array[-fade_duration:] *= np.linspace(1.0, 0.0, fade_duration, dtype=np.float32)
 
-        print("DEBUG: Resample auf 48kHz")
-        wav_resampled = librosa.resample(wav_array, orig_sr=TTS_SAMPLERATE, target_sr=TARGET_SAMPLERATE)
+        # Resample → 48 kHz
+        print("DEBUG: Resample auf 48 kHz")
+        if TTS_SAMPLERATE != TARGET_SAMPLERATE:
+            wav_array = librosa.resample(wav_array, orig_sr=TTS_SAMPLERATE, target_sr=TARGET_SAMPLERATE)
+
+        # 16-bit PCM speichern
         print(f"DEBUG: Speichere WAV unter {TEMP_AUDIO_FILE}")
-        sf.write(TEMP_AUDIO_FILE, wav_resampled, TARGET_SAMPLERATE)
+        sf.write(TEMP_AUDIO_FILE, wav_array, TARGET_SAMPLERATE, subtype="PCM_16")
 
-        print(f"DEBUG: Lade WAV zum Abspielen ({TEMP_AUDIO_FILE})")
-        data, samplerate = sf.read(TEMP_AUDIO_FILE)
-        print(f"DEBUG: Starte Wiedergabe mit sounddevice (Device {AUDIO_DEVICE_INDEX})")
-        sd.play(data, samplerate=TARGET_SAMPLERATE, device=AUDIO_DEVICE_INDEX)
-        print("DEBUG: Warten auf Playback-Ende")
-        sd.wait()
+        # Abspielen via aplay (ALSA)
+        print(f"DEBUG: Spiele über aplay auf {alsa_dev}")
+        subprocess.run(["aplay", "-D", alsa_dev, "-q", TEMP_AUDIO_FILE], check=False)
         print("DEBUG: Wiedergabe fertig")
     except Exception as e:
         print(f"❌ Fehler bei der Audioausgabe: {e}")
