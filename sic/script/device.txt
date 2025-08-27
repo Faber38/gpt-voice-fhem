@@ -38,5 +38,3 @@ babyphone ein|an
 babyphone aus
 Fernseher ein|an
 Fernseher aus
-Radio ein|an
-Radio aus

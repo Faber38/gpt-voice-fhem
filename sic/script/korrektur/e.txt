@@ -1,0 +1,4 @@
+# falsch|richtig
+nestzimmer|esszimmer
+S-Zimmer|esszimmer
+best zimmer|esszimmer

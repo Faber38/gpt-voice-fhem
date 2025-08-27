@@ -4,23 +4,24 @@ import requests
 import json
 import os
 import numpy as np
+import sounddevice as sd
 import soundfile as sf
 import librosa
-import subprocess
 from TTS.api import TTS
 from datetime import datetime
 import configparser
-from pathlib import Path
 
-# ----------------- Konfiguration -----------------
+# Konfigurationsdatei laden
 config = configparser.ConfigParser()
 config.read("/opt/script/api_keys.conf")
+
+# API-Key sicher lesen
 API_KEY = config.get("OpenWeather", "api_key").strip()
 
 TTS_MODEL = "tts_models/de/thorsten/tacotron2-DDC"
-TTS_SAMPLERATE = 22050               # Coqui-Ausgabe
-TARGET_SAMPLERATE = 48000            # Ziel für Ausgabe (PowerConf S3 ist @48k stabil)
-AUDIO_DEVICE_FILE = "/opt/script/audio_device.conf"
+TTS_SAMPLERATE = 22050
+TARGET_SAMPLERATE = 48000
+AUDIO_INDEX_FILE = "/opt/script/audio_index.conf"
 MIC_PAUSE_FLAG = "/tmp/mic_paused"
 AUSGABE_DATEI = "/tmp/wetter_heute.wav"
 
@@ -30,32 +31,26 @@ RICHTUNGEN = [
     "Südwest", "West-Südwest", "Westen", "West-Nordwest", "Nordwest", "Nord-Nordwest"
 ]
 
-# ----------------- Hilfsfunktionen -----------------
-def lese_alsa_device():
-    try:
-        dev = Path(AUDIO_DEVICE_FILE).read_text().strip()
-        if dev:
-            return dev
-    except Exception:
-        pass
-    return "default"
-
 def windrichtung_text(degrees):
     index = int((degrees + 11.25) / 22.5) % 16
     richtung = RICHTUNGEN[index]
     print(f"🧭 Windrichtung aus {degrees}° → {richtung}")
     return richtung
 
-def play_wav_with_aplay(path):
-    dev = lese_alsa_device()
+def play_wav_file(path, audio_index):
     try:
-        print(f"🔊 Spiele Datei ab: {path} auf ALSA-Device: {dev}")
+        print(f"🔊 Spiele Datei ab: {path} auf Device Index {audio_index}")
         open(MIC_PAUSE_FLAG, "w").close()
-        # -q = quiet, -D = Device (z. B. plughw:2,0)
-        subprocess.run(["aplay", "-D", dev, "-q", path], check=False)
+        data, samplerate = sf.read(path)
+        print(f"📈 Eingelesen: {len(data)} Samples @ {samplerate} Hz")
+        if samplerate != TARGET_SAMPLERATE:
+            print("🔄 Resampling erforderlich....")
+            data = librosa.resample(np.array(data), orig_sr=samplerate, target_sr=TARGET_SAMPLERATE)
+        sd.play(data, samplerate=TARGET_SAMPLERATE, device=audio_index)
+        sd.wait()
         print("✅ Audioausgabe abgeschlossen.")
     except Exception as e:
-        print(f"❌ Audiofehler (aplay): {e}")
+        print(f"❌ Audiofehler: {e}")
     finally:
         if os.path.exists(MIC_PAUSE_FLAG):
             os.remove(MIC_PAUSE_FLAG)
@@ -63,38 +58,28 @@ def play_wav_with_aplay(path):
 def tts_speichern_und_abspielen(text):
     print(f"🗣️ Erzeuge TTS für: {text}")
     try:
-        # TTS initialisieren (GPU, falls vorhanden)
+        with open(AUDIO_INDEX_FILE) as f:
+            audio_index = int(f.read().strip())
+        print(f"🔧 Audioausgabe-Index: {audio_index}")
+    except Exception as e:
+        print(f"❌ Fehler beim Laden des Audio-Index: {e}")
+        return
+
+    try:
         tts = TTS(model_name=TTS_MODEL, progress_bar=False)
-        try:
-            tts.to("cuda")
-        except Exception:
-            tts.to("cpu")
-
-        # 1) TTS → 22.05 kHz (mono)
+        tts.to("cuda")
         wav = tts.tts(text, speed=0.8)
-        wav = np.asarray(wav, dtype=np.float32)
-
-        # 2) Pegel normalisieren (Soft-Limiter)
-        max_amp = float(np.max(np.abs(wav))) if wav.size else 0.0
+        wav_array = np.array(wav)
+        max_amp = np.max(np.abs(wav_array))
         if max_amp > 0:
-            wav = wav / max_amp * 0.9
-
-        # 3) sanftes Fade-out (300 ms)
+            wav_array = wav_array / max_amp * 0.9
         fade_duration = int(TTS_SAMPLERATE * 0.3)
-        if fade_duration < wav.shape[0]:
-            wav[-fade_duration:] *= np.linspace(1.0, 0.0, fade_duration, dtype=np.float32)
-
-        # 4) Resampling auf 48 kHz
-        if TTS_SAMPLERATE != TARGET_SAMPLERATE:
-            wav = librosa.resample(wav, orig_sr=TTS_SAMPLERATE, target_sr=TARGET_SAMPLERATE)
-
-        # 5) Als 16-bit PCM speichern (maximale ALSA-Kompatibilität)
-        sf.write(AUSGABE_DATEI, wav, TARGET_SAMPLERATE, subtype="PCM_16")
+        if fade_duration < len(wav_array):
+            wav_array[-fade_duration:] *= np.linspace(1, 0, fade_duration)
+        wav_resampled = librosa.resample(wav_array, orig_sr=TTS_SAMPLERATE, target_sr=TARGET_SAMPLERATE)
+        sf.write(AUSGABE_DATEI, wav_resampled, TARGET_SAMPLERATE)
         print(f"💾 Datei gespeichert: {AUSGABE_DATEI}")
-
-        # 6) Abspielen über aplay/ALSA-Device aus Config
-        play_wav_with_aplay(AUSGABE_DATEI)
-
+        play_wav_file(AUSGABE_DATEI, audio_index)
     except Exception as e:
         print(f"❌ TTS-Fehler: {e}")
 
@@ -139,6 +124,7 @@ def hole_wetterwarnung(lat, lon):
         print(f"❌ Fehler beim Parsen der JSON-Antwort (Warnung): {e}")
     return None
 
+
 def uebersetze_warnung(text):
     ersetzungen = [
         ("There is a risk of wind gusts", "Es besteht die Gefahr von Sturmböen"),
@@ -154,12 +140,13 @@ def uebersetze_warnung(text):
         ("level 2 of 4", "Stufe 2 von 4"),
         ("level 3 of 4", "Stufe 3 von 4"),
         ("level 4 of 4", "Stufe 4 von 4"),
-        ("Achtung: strong heat.", "Achtung: starke Hitze."),
-        ("The expected weather will bring a situation of strong heat stress.", "Das erwartete Wetter wird eine Situation mit starker Hitzebelastung bringen."),
     ]
+
     for englisch, deutsch in ersetzungen:
         text = text.replace(englisch, deutsch)
-    return text.replace("(", "").replace(")", "")
+
+    text = text.replace("(", "").replace(")", "")  # Klammern entfernen
+    return text
 
 def erklaere_sturmböen(text):
     stufen_info = {
@@ -168,9 +155,11 @@ def erklaere_sturmböen(text):
         "Stufe 3 von 4": ("80 bis 100 Stundenkilometern", "Es drohen Schäden an Bäumen, Dächern oder Fahrzeugen."),
         "Stufe 4 von 4": ("über 100 Stundenkilometern", "Es besteht akute Orkangefahr mit hohem Schadenspotenzial.")
     }
+
     for stufe, (kmh, bedeutung) in stufen_info.items():
         if stufe in text:
-            return text + f" Das entspricht etwa {kmh}. {bedeutung}"
+            erklaerung = f" Das entspricht etwa {kmh}. {bedeutung}"
+            return text + erklaerung
     return text
 
 def wetterbericht_erstellen(wetterdaten, ort):
@@ -206,7 +195,6 @@ def wetterbericht_erstellen(wetterdaten, ort):
 
     return text
 
-# ----------------- Main -----------------
 def main():
     if len(sys.argv) < 2:
         print("Nutzung: wetter.py <optionen...>")

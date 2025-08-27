@@ -1,0 +1,3 @@
+# falsch|richtig
+urlaubsmodus aktivieren|urlaubsmodus aktivieren",
+urlaub einschalten|urlaubsmodus aktivieren",

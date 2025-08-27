@@ -36,7 +36,7 @@ if not FHEM_URL.endswith("/fhem"):
         FHEM_URL += "/"
     FHEM_URL += "fhem"
 
-print(f"🌐 Verwende FHEM-URL: {FHEM_URL}")
+print(f"\U0001F310 Verwende FHEM-URL: {FHEM_URL}")
 
 RAUM_DEVICE_MAP = {
     "wohnzimmer": {"device": "EnO_01A4796C", "reading": "temperature"},
@@ -56,18 +56,17 @@ def fix_temperature_numbers(text):
     return re.sub(r'(\d+)\s*Grad', replace, text)
 
 if __name__ == "__main__":
-    print("DEBUG: Starte Argument-Parsing")
     parser = argparse.ArgumentParser(description="Raumtemperatur über GPT & TTS ausgeben.")
     parser.add_argument("--text", type=str, required=True, help="Text der Temperaturabfrage")
     args = parser.parse_args()
     eingabetext = args.text.lower()
 
-    print(f"DEBUG: Prüfe AUDIO_INDEX_FILE: {AUDIO_INDEX_FILE}")
     if not os.path.exists(AUDIO_INDEX_FILE):
         print(f"❌ Audio-Index-Datei nicht gefunden: {AUDIO_INDEX_FILE}")
         sys.exit(1)
     with open(AUDIO_INDEX_FILE, "r") as f:
         AUDIO_DEVICE_INDEX = int(f.read().strip())
+
     print(f"🔊 Verwende Audio-Index: {AUDIO_DEVICE_INDEX}")
     print(f"🛣️ Eingabe: {eingabetext}")
 
@@ -80,6 +79,7 @@ if __name__ == "__main__":
     if not raum_erkannt:
         print("❌ Kein bekannter Raum in der Abfrage erkannt.")
         sys.exit(1)
+
     print(f"🌡️ Temperaturabfrage erkannt für Raum: {raum_erkannt.capitalize()}")
 
     device_info = RAUM_DEVICE_MAP[raum_erkannt]
@@ -87,7 +87,6 @@ if __name__ == "__main__":
     fhem_reading = device_info["reading"]
 
     FHEM_CMD = f"jsonlist2 {fhem_device}"
-    print(f"DEBUG: Hole FHEM-Temperatur mit {FHEM_CMD}")
     try:
         response = requests.get(
             f"{FHEM_URL}?cmd={FHEM_CMD}&XHR=1",
@@ -99,7 +98,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ Fehler beim FHEM-Request oder JSON-Parsing: {e}")
         sys.exit(1)
-    print("DEBUG: FHEM-Antwort erhalten")
 
     readings = data["Results"][0]["Readings"]
     temp_value = readings[fhem_reading]["Value"]
@@ -114,40 +112,28 @@ if __name__ == "__main__":
     print(f"🧐 Antwort: {gpt_antwort}")
 
     try:
-        print("DEBUG: Schreibe mic_paused")
         open(MIC_PAUSE_FLAG, "w").close()
 
-        print("DEBUG: Lade Coqui TTS Modell")
         tts = TTS(model_name=TTS_MODEL, progress_bar=False)
-        print("DEBUG: Modell auf CUDA verschieben")
         tts.to("cuda")
-
-        print(f"DEBUG: Erzeuge WAV für: {gpt_antwort}")
+        print(f"🔊 Erzeuge Audio aus Antwort: {gpt_antwort}")
         wav = tts.tts(gpt_antwort, speed=0.8)
         wav_array = np.array(wav)
 
-        print("DEBUG: Normalisiere Lautstärke")
         max_amp = np.max(np.abs(wav_array))
         if max_amp > 0:
             wav_array = wav_array / max_amp * 0.9
 
-        print("DEBUG: Fade-Out")
         fade_duration = int(TTS_SAMPLERATE * 0.3)
         if fade_duration < len(wav_array):
             wav_array[-fade_duration:] *= np.linspace(1, 0, fade_duration)
 
-        print("DEBUG: Resample auf 48kHz")
         wav_resampled = librosa.resample(wav_array, orig_sr=TTS_SAMPLERATE, target_sr=TARGET_SAMPLERATE)
-        print(f"DEBUG: Speichere WAV unter {TEMP_AUDIO_FILE}")
         sf.write(TEMP_AUDIO_FILE, wav_resampled, TARGET_SAMPLERATE)
 
-        print(f"DEBUG: Lade WAV zum Abspielen ({TEMP_AUDIO_FILE})")
         data, samplerate = sf.read(TEMP_AUDIO_FILE)
-        print(f"DEBUG: Starte Wiedergabe mit sounddevice (Device {AUDIO_DEVICE_INDEX})")
         sd.play(data, samplerate=TARGET_SAMPLERATE, device=AUDIO_DEVICE_INDEX)
-        print("DEBUG: Warten auf Playback-Ende")
         sd.wait()
-        print("DEBUG: Wiedergabe fertig")
     except Exception as e:
         print(f"❌ Fehler bei der Audioausgabe: {e}")
     finally:

@@ -1,0 +1,8 @@
+stachte | starte
+wdrzwei | wdr2
+wdr 2 | wdr2
+wdr 4 | wdr4
+einslive | 1live
+bayarn | bayern
+klassik | br_klassik
+br klassik | br_klassik
