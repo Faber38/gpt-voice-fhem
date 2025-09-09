@@ -1,3 +1,0 @@
-# falsch|richtig
-seconds|sekunden
-hour|stunden

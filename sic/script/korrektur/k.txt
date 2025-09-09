@@ -1,4 +1,0 @@
-# falsch|richtig
-Küche|küche
-füße|küche
-kueche|küche
