@@ -24,7 +24,7 @@ Willkommen zu meinem **lokalen Sprachsystem** für die Haussteuerung mit **Wakew
   - Stabile Wiedergabe via `aplay`, Gerät über `audio_device.conf` konfigurierbar
   - Zufällige Bestätigungs- und Fehlermeldungen
 - **Vollständig offline:**  
-  - Kein Cloudzugriff, keine Internetverbindung nötig
+  - Kein Cloudzugriff, keine Internetverbindung nötig 
 - **GPU-Unterstützung:**  
   - CUDA-Beschleunigung für GPT (TinyLlama, Phi, Mistral)
 
@@ -156,7 +156,7 @@ Projekt von Faber38
 → Lokale Sprachsteuerung für Hausautomation mit Vosk, Coqui, GPT & FHEM  
 → Läuft auf Debian VM (Proxmox) mit GPU-Beschleunigung (CUDA)
 
-Motherboard: GA-AB350 │ CPU:AMD Ryzen 7 1700 │ RAM: 64 GB │ Nvidia GTX3060
+Motherboard: GA-AB350 │ CPU:AMD Ryzen 7 1700 │ RAM: 64 GB │ Nvidia RTX 3060 12GB
 
 ---
 
