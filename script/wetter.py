@@ -117,79 +117,89 @@ def hole_wetter(ort):
         return None
 
 def hole_wetterwarnung(lat, lon):
-        url = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&appid={API_KEY}&lang=de"
-        print(f"🌐 OneCall-URL für Warnung: {url}")
-        response = requests.get(url)
-        print(f"🔹 HTTP-Status (Warnung): {response.status_code}")
-        if response.status_code != 200:
-            print(f"⚠️ Keine Wetterwarnung verfügbar (Status {response.status_code})")
-            return None
-        try:
-            data = response.json()
-            print(f"🧾 Antwortinhalt (Warnung): {json.dumps(data, indent=2)}")
-            if "alerts" in data and data["alerts"]:
-                warnung = data["alerts"][0]
-                print(f"🚨 Warnung erkannt: {warnung['event']}")
-                # Ganze Description nehmen, \n entfernen, in Sätze teilen, je Satz übersetzen
-                desc = warnung.get("description", "").replace("\n", " ").strip()
-                saetze = [s.strip() for s in re.split(r'\.\s*', desc) if s.strip()]
-                saetze_de = [uebersetze_warnung(s) for s in saetze]
-                desc_de = ". ".join(saetze_de)
-                if desc_de and not desc_de.endswith("."):
-                    desc_de += "."
-    
-                warn_event_de = uebersetze_warnung(warnung.get("event", ""))
-                warntext = f"Achtung: {warn_event_de}."
-                if desc_de:
-                    warntext += f" {desc_de}"
-    
-                warntext = erklaere_sturmböen(warntext)
-                return warntext
-            else:
-                print("ℹ️ Keine aktuellen Warnungen enthalten.")
-        except Exception as e:
-            print(f"❌ Fehler beim Parsen der JSON-Antwort (Warnung): {e}")
+    url = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&appid={API_KEY}&lang=de"
+    print(f"🌐 OneCall-URL für Warnung: {url}")
+    response = requests.get(url)
+    print(f"🔹 HTTP-Status (Warnung): {response.status_code}")
+    if response.status_code != 200:
+        print(f"⚠️ Keine Wetterwarnung verfügbar (Status {response.status_code})")
         return None
+    try:
+        data = response.json()
+        print(f"🧾 Antwortinhalt (Warnung): {json.dumps(data, indent=2)}")
+        if "alerts" in data and data["alerts"]:
+            warnung = data["alerts"][0]
+            print(f"🚨 Warnung erkannt: {warnung['event']}")
+            # nur erster Satz wie im alten Script
+            desc_raw = warnung.get("description", "").replace("\n", " ").strip()
+            first_sentence = desc_raw.split(".")[0].strip()
+
+            warn_event_de = uebersetze_warnung(warnung.get("event", ""))
+            desc_de = uebersetze_warnung(first_sentence)
+
+            warntext = f"Achtung: {warn_event_de}."
+            if desc_de:
+                warntext += f" {desc_de}."
+            warntext = erklaere_sturmböen(warntext)
+            return warntext
+        else:
+            print("ℹ️ Keine aktuellen Warnungen enthalten.")
+    except Exception as e:
+        print(f"❌ Fehler beim Parsen der JSON-Antwort (Warnung): {e}")
+    return None
     
 def uebersetze_warnung(text):
-    # Vor-Normalisierung
+    # Vor-Normalisierung (ohne Logikänderung)
     text = text.replace("\n", " ")
     text = text.strip(" '\"")
-    # Slash-/Space-Varianten vereinheitlichen
     text = text.replace(" / ", "/").replace("  ", " ")
 
     ersetzungen = [
-        # deine neuen Sätze (robuster)
+        # Regen-Varianten
         ("Achtung: very heavy/persistent rain.", "Achtung: sehr schwerer anhaltender Regen."),
-
-        # Varianten des Regen-Phrasenblocks
         ("very heavy/persistent rain", "sehr schwerer anhaltender Regen"),
         ("very heavy / persistent rain", "sehr schwerer anhaltender Regen"),
         ("very heavy/heavy persistent rain", "sehr schwerer anhaltender Regen"),
         ("very heavy / heavy persistent rain", "sehr schwerer anhaltender Regen"),
         ("heavy persistent rain", "schwerer anhaltender Regen"),
 
-        # restliche Regeln
-        ("Achtung: heavy thunderstorms with gale- or storm-force gusts, heavy rain and hail",
-         "Achtung: schwere Gewitter mit Sturmböen oder Orkanböen, starkem Regen und Hagel"),
-        ("There is a risk of heavy thunderstorms with gale- or storm-force gusts, heavy rain and hail",
-         "Es besteht die Gefahr von schweren Gewittern mit Sturmböen oder Orkanböen, starkem Regen und Hagel"),
-        ("heavy thunderstorms with gale- or storm-force gusts, heavy rain and hail",
-         "schwere Gewitter mit Sturmböen oder Orkanböen, starkem Regen und Hagel"),
+        # Böen/Storm-Phrasen
+        ("gale-force gusts", "Sturmböen"),
+        ("storm-force gusts", "orkanartige Böen"),
         ("gale- or storm-force gusts", "Sturmböen oder Orkanböen"),
-        ("heavy thunderstorms", "schwere Gewitter"),
+        ("gusts:", "Böen:"),
+        ("Max. gusts:", "Maximale Böen:"),
+        ("Max.  gusts:", "Maximale Böen:"),  # Toleranz
+
+        # Struktur/Labels
+        ("Wind direction:", "Windrichtung:"),
+        ("Increased gusts:", "Erhöhte Böen:"),
+        ("near showers", "in Schauernähe"),
+
+        # Himmelsrichtungen (mit Bindestrich)
+        ("south-west", "Südwest"),
+        ("south-east", "Südost"),
+        ("north-west", "Nordwest"),
+        ("north-east", "Nordost"),
+        ("west-southwest", "West-Südwest"),
+        ("west-northwest", "West-Nordwest"),
+        ("east-southeast", "Ost-Südost"),
+        ("east-northeast", "Ost-Nordost"),
+
+        # Vorhandene Regeln aus deinem Script
+        ("Achtung: heavy thunderstorms with heavy rain", "Achtung: schwere Gewitter mit starkem Regen"),
+        ("There is a risk of heavy thunderstorms with heavy rain", "Es besteht die Gefahr von schweren Gewittern mit starkem Regen"),
+        ("heavy thunderstorms with heavy rain", "schwere Gewitter mit starkem Regen"),
+        ("There is a risk of wind gusts", "Es besteht die Gefahr von Sturmböen"),
+        ("Achtung: wind gusts", "Achtung: Sturmböen"),
+        ("wind gusts", "Sturmböen"),
+        ("There is a high potential for the development of severe thunderstorms", "Es besteht eine hohe Wahrscheinlichkeit für schwere Gewitter"),
+        ("Achtung: severe thunderstorms", "Achtung: schwere Gewitter"),
+        ("severe thunderstorms", "schwere Gewitter"),
         ("heavy rain", "starker Regen"),
         ("hail", "Hagel"),
         ("There is a risk of", "Es besteht die Gefahr von"),
         ("Achtung:", "Achtung:"),
-        ("There is a high potential for the development of severe thunderstorms",
-         "Es besteht eine hohe Wahrscheinlichkeit für schwere Gewitter"),
-        ("Achtung: severe thunderstorms", "Achtung: schwere Gewitter"),
-        ("severe thunderstorms", "schwere Gewitter"),
-        ("Achtung: heavy thunderstorms with heavy rain", "Achtung: schwere Gewitter mit starkem Regen"),
-        ("There is a risk of heavy thunderstorms with heavy rain",
-         "Es besteht die Gefahr von schweren Gewittern mit starkem Regen"),
-        ("heavy thunderstorms with heavy rain", "schwere Gewitter mit starkem Regen"),
 
         # Warnstufen
         ("level 1 of 4", "Stufe 1 von 4"),
@@ -199,21 +209,21 @@ def uebersetze_warnung(text):
 
         # Hitze
         ("Achtung: strong heat.", "Achtung: starke Hitze."),
-        ("The expected weather will bring a situation of strong heat stress.",
-         "Das erwartete Wetter wird eine Situation mit starker Hitzebelastung bringen."),
+        ("The expected weather will bring a situation of strong heat stress.", "Das erwartete Wetter wird eine Situation mit starker Hitzebelastung bringen."),
     ]
-
     for englisch, deutsch in ersetzungen:
         text = text.replace(englisch, deutsch)
 
-    # *** NEU: englischen Vorsatz generisch eindeutschen (am Satzanfang) ***
+    # Optional: englischen Vorsatz eindeutschen (falls mal am Satzanfang vorhanden)
+    # Schadet nicht, greift aber nur wenn exakt so geliefert.
     text = re.sub(
         r"^There is a high (?:potential|likelihood) for the development of\s+",
         "Es besteht ein hohes Potenzial für die Entwicklung von ",
         text, flags=re.IGNORECASE
     )
-    
-    # Klammern raus & Spaces säubern
+
+    # Schönheitskram
+    text = text.replace("<", "unter ")
     text = text.replace("(", "").replace(")", "")
     while "  " in text:
         text = text.replace("  ", " ")
